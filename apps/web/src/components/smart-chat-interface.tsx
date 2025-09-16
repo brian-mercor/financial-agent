@@ -181,13 +181,16 @@ export function SmartChatInterface({ assistant }: SmartChatInterfaceProps) {
         },
         body: JSON.stringify({
           message: userMessage.content,
-          assistantType: assistant.id,
+          assistantType: assistant.id || 'general',
           userId: `user-${Date.now()}`,
           context: {
             symbols: [],
             timeframe: '1d',
             riskTolerance: 'moderate',
           },
+          // Optional parameters - include for consistency
+          history: messages,
+          stream: true,
         }),
       });
 
