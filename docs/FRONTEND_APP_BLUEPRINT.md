@@ -19,7 +19,10 @@
 ## Overview
 
 This blueprint provides a complete specification for building a financial assistant frontend application with:
-- Real-time chat interface with AI assistants
+- Landing page with product overview
+- Authentication system (login/signup)
+- Protected dashboard with AI chat interface
+- Real-time chat interface with multiple AI assistants
 - TradingView chart integration
 - Multi-assistant support (Market Analyst, Trading Advisor, Portfolio Manager)
 - Streaming API responses
@@ -54,15 +57,20 @@ app-name/
 │   │   ├── AssistantCard.jsx
 │   │   ├── SmartChatInterface.jsx
 │   │   ├── ChartRenderer.jsx
-│   │   ├── AgentStatusPanel.jsx
+│   │   ├── ProtectedRoute.jsx
 │   │   ├── Navigation.jsx
 │   │   └── Layout.jsx
+│   ├── contexts/
+│   │   └── AuthContext.jsx
 │   ├── services/
 │   │   └── api.service.js
 │   ├── pages/
-│   │   ├── HomePage.jsx
-│   │   ├── ChatPage.jsx
-│   │   └── AboutPage.jsx
+│   │   ├── LandingPage.jsx
+│   │   ├── LoginPage.jsx
+│   │   ├── SignUpPage.jsx
+│   │   └── DashboardPage.jsx
+│   ├── config/
+│   │   └── assistants.js
 │   ├── styles/
 │   │   └── globals.css
 │   ├── App.jsx
@@ -626,27 +634,114 @@ export function SmartChatInterface({ assistant }) {
 }
 ```
 
+## Authentication Flow
+
+### Auth Context (src/contexts/AuthContext.jsx)
+```javascript
+import { createContext, useContext, useState, useEffect } from 'react'
+
+const AuthContext = createContext({})
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for existing session
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+    }
+    setLoading(false)
+  }, [])
+
+  const signIn = async (email, password) => {
+    // Replace with actual API call
+    const mockUser = { id: Date.now().toString(), email }
+    localStorage.setItem('user', JSON.stringify(mockUser))
+    setUser(mockUser)
+    return { success: true }
+  }
+
+  const signOut = () => {
+    localStorage.removeItem('user')
+    setUser(null)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+```
+
+## Page Components
+
+### Landing Page (Public)
+- Marketing-focused homepage with product overview
+- Feature highlights and benefits sections
+- Call-to-action buttons for login/signup
+- Professional gradient styling
+- Responsive design for mobile/desktop
+
+### Authentication Pages
+**Login Page**:
+- Split-screen design with form and gradient background
+- Email/password inputs with validation
+- "Remember me" checkbox
+- Link to signup page
+- Error handling for failed attempts
+
+**SignUp Page**:
+- Registration form with name, email, password
+- Password confirmation field
+- Terms of service agreement
+- Link back to login
+- Success redirects to dashboard
+
+### Dashboard Page (Protected)
+- Requires authentication to access
+- Sidebar with:
+  - User profile information
+  - AI assistant selector
+  - Portfolio summary widget
+  - Quick action buttons
+- Main chat interface area
+- Real-time portfolio metrics
+- Responsive sidebar toggle
+
 ## Routing Structure
 
 ### Routes Configuration
 ```javascript
 // src/App.jsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import Layout from './components/Layout'
-import HomePage from './pages/HomePage'
-import ChatPage from './pages/ChatPage'
-import AboutPage from './pages/AboutPage'
+import { AuthProvider } from './contexts/AuthContext'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import LandingPage from './pages/LandingPage'
+import LoginPage from './pages/LoginPage'
+import SignUpPage from './pages/SignUpPage'
+import DashboardPage from './pages/DashboardPage'
 
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="chat/:assistantId" element={<ChatPage />} />
-          <Route path="about" element={<AboutPage />} />
-        </Route>
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
@@ -792,14 +887,28 @@ VITE_TRADINGVIEW_CONTAINER_ID=tradingview_widget
 ### Port Configuration Reference
 - **Port 3000**: Motia backend (handles actual API requests)
 - **Port 3001**: Next.js web app (proxies to backend)
-- **Port 5174**: Vite React app (proxies to backend or Next.js)
+- **Port 5174**: Vite React app webb (proxies to Next.js)
+- **Port 5175**: Vite React app web-b (proxies to Next.js)
 - **Port 5173**: Default Vite dev server port
 
 ## Testing Checklist
 
-### Functionality Tests
+### Authentication Tests
+- [ ] Landing page displays correctly
+- [ ] Login form validates and submits
+- [ ] SignUp form validates passwords match
+- [ ] Protected routes redirect to login when unauthenticated
+- [ ] User session persists on refresh
+- [ ] Logout clears session and redirects
+
+### Dashboard Tests
 - [ ] Chat interface sends and receives messages
 - [ ] Assistant switching works correctly
+- [ ] Sidebar toggles open/closed
+- [ ] Portfolio metrics display
+- [ ] User profile shows in sidebar
+
+### Functionality Tests
 - [ ] Chart rendering displays properly
 - [ ] API error handling shows user-friendly messages
 - [ ] Streaming responses display incrementally
