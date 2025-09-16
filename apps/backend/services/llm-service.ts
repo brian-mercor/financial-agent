@@ -55,18 +55,38 @@ export class LLMService {
   async process(
     message: string,
     assistantType: string,
-    context: { traceId: string; userId: string }
+    context: { traceId: string; userId: string },
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<LLMResponse> {
     const systemPrompt = this.getSystemPrompt(assistantType);
-    
+
+    // Build messages array with history
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Add conversation history if provided
+    if (history && history.length > 0) {
+      // Limit history to last 10 exchanges to avoid token limits
+      const recentHistory = history.slice(-20);
+      for (const msg of recentHistory) {
+        if (msg.content && msg.content.trim()) {
+          messages.push({
+            role: msg.role,
+            content: msg.content
+          });
+        }
+      }
+    }
+
+    // Add current message
+    messages.push({ role: 'user', content: message });
+
     // Try Groq first
     if (this.groqClient) {
       try {
         const completion = await this.groqClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
+          messages,
           model: 'llama-3.3-70b-versatile',
           temperature: 0.7,
           max_tokens: 2048,
@@ -88,10 +108,7 @@ export class LLMService {
     if (this.azureClient) {
       try {
         const completion = await this.azureClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
+          messages,
           model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4',
           temperature: 0.7,
           max_tokens: 2048,
@@ -113,10 +130,7 @@ export class LLMService {
     if (this.openaiClient) {
       try {
         const completion = await this.openaiClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
+          messages,
           model: 'gpt-4-turbo-preview',
           temperature: 0.7,
           max_tokens: 2048,

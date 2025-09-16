@@ -129,12 +129,25 @@ export const config: ApiRouteConfig = {
   bodySchema: z.object({
     message: z.string(),
     assistantType: z.enum(['general', 'analyst', 'trader', 'advisor', 'riskManager', 'economist']).optional(),
-    userId: z.string(),
+    userId: z.string().optional(), // Make userId optional for flexibility
     context: z.object({
       symbols: z.array(z.string()).optional(),
       timeframe: z.string().optional(),
       riskTolerance: z.string().optional(),
     }).optional(),
+    // Add support for conversation history
+    history: z.array(z.object({
+      id: z.string(),
+      role: z.enum(['user', 'assistant']),
+      content: z.string(),
+      timestamp: z.string(),
+      assistantType: z.string().optional(),
+      chartHtml: z.string().optional(),
+      hasChart: z.boolean().optional(),
+      isStreaming: z.boolean().optional(),
+    })).optional(),
+    // Add support for stream flag (though Motia doesn't support actual streaming)
+    stream: z.boolean().optional(),
   }),
   emits: [
     'chat.started',
@@ -146,11 +159,26 @@ export const config: ApiRouteConfig = {
 }
 
 export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, traceId }: any) => {
-  const { message, assistantType = 'general', userId, context } = req.body
+  const {
+    message,
+    assistantType = 'general',
+    userId = `user-${Date.now()}`, // Default userId if not provided
+    context,
+    history,
+    stream
+  } = req.body
   
   try {
-    // Log the incoming message
-    logger.info('ChatStream received message', { message, traceId })
+    // Log the incoming message with additional context
+    logger.info('ChatStream received message', {
+      message,
+      traceId,
+      hasHistory: !!history,
+      historyLength: history?.length || 0,
+      stream,
+      userId,
+      assistantType
+    })
     
     // Check if the message is requesting a chart
     const detectedSymbol = extractSymbolFromQuery(message)
@@ -263,11 +291,12 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
         // Initialize LLM service
         const llmService = new LLMService()
 
-        // Process message (without streaming since Motia doesn't support it)
+        // Process message with history (without streaming since Motia doesn't support it)
         const response = await llmService.process(
           message,
           assistantType,
-          { traceId, userId }
+          { traceId, userId },
+          history // Pass conversation history to LLM
         )
 
         // Store complete response in state
