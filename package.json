@@ -5,8 +5,9 @@
   "description": "Hybrid financial AI system with Mastra framework",
   "scripts": {
     "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=web",
-    "dev:webb": "turbo run dev --filter=webb",
+    "dev:web": "turbo run dev --filter=web --filter=backend",
+    "dev:webb": "turbo run dev --filter=webb --filter=backend",
+    "dev:web-b": "turbo run dev --filter=web-b --filter=backend",
     "dev:all": "turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
