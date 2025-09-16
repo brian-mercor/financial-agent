@@ -98,16 +98,101 @@ app-name/
 }
 ```
 
-### Important Note on API Request Format
-When sending requests to the backend API, ensure that the request body includes all expected parameters:
-- **message**: The user's message (required)
-- **assistantType**: The type of assistant (optional, defaults to 'general')
-- **userId**: User identifier (optional, auto-generated if not provided)
-- **history**: Array of previous messages for context (optional)
-- **stream**: Boolean flag for streaming responses (optional)
-- **context**: Additional context object (optional)
+### Standardized API Request Format
+
+**CRITICAL**: All frontend applications MUST send requests with the exact same payload structure to ensure consistent responses from the backend.
+
+#### Required Request Payload Structure
+```json
+{
+  "message": "User's question or input",
+  "assistantType": "general",
+  "userId": "user-1234567890",
+  "context": {
+    "symbols": [],
+    "timeframe": "1d",
+    "riskTolerance": "moderate"
+  },
+  "history": [
+    {
+      "id": "msg-1",
+      "role": "user",
+      "content": "Previous message",
+      "timestamp": "2025-01-16T12:00:00Z"
+    },
+    {
+      "id": "msg-2",
+      "role": "assistant",
+      "content": "Previous response",
+      "timestamp": "2025-01-16T12:00:01Z"
+    }
+  ],
+  "stream": true
+}
+```
+
+#### Field Specifications
+- **message** (string, required): The user's current message
+- **assistantType** (string, optional): Type of assistant - defaults to 'general'
+  - Options: 'general', 'analyst', 'trader', 'advisor', 'riskManager', 'economist'
+- **userId** (string, optional): User identifier - auto-generated as `user-${Date.now()}` if not provided
+- **context** (object, optional): Additional context for the assistant
+  - **symbols** (array): Stock/crypto symbols being discussed
+  - **timeframe** (string): Time period for analysis (e.g., '1d', '1w', '1m')
+  - **riskTolerance** (string): User's risk preference ('low', 'moderate', 'high')
+- **history** (array, optional): Conversation history for context-aware responses
+  - Each message should have: id, role ('user'/'assistant'), content, timestamp
+- **stream** (boolean, optional): Whether to stream the response - defaults to true
 
 ## Configuration Files
+
+### Important: API Proxy Configuration
+
+When building frontend applications, ensure proper API routing:
+
+#### For Next.js Apps (Port 3001)
+If using Next.js, create an API route that forwards requests to your backend:
+
+```typescript
+// app/api/chat/stream/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Forward the request to the actual backend API
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:3000';
+    const response = await fetch(`${backendUrl}/api/chat/stream`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body), // Forward the entire body as-is
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Backend error:', errorText);
+      return NextResponse.json(
+        { error: 'Backend request failed', details: errorText },
+        { status: response.status }
+      );
+    }
+
+    const data = await response.json();
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Chat stream proxy error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Warning**: Do NOT implement mock responses in your API routes. Always forward to the real backend to ensure consistent behavior across all frontend applications.
 
 ### 1. Vite Configuration (vite.config.js)
 ```javascript
@@ -194,37 +279,43 @@ export default {
 ```javascript
 const API_BASE_URL = '/api'
 
+// Standardized request builder to ensure consistency
+const buildRequestBody = (message, assistantType = 'general', options = {}) => {
+  return {
+    message,
+    assistantType,
+    userId: options.userId || `user-${Date.now()}`,
+    context: options.context || {
+      symbols: [],
+      timeframe: '1d',
+      riskTolerance: 'moderate'
+    },
+    history: options.history || [],
+    stream: options.stream !== undefined ? options.stream : true
+  }
+}
+
 export const apiService = {
-  async sendMessage(message, assistantType, history = [], userId = null, context = {}) {
+  async sendMessage(message, assistantType, options = {}) {
+    const body = buildRequestBody(message, assistantType, { ...options, stream: false })
+
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        assistantType,
-        history,
-        userId: userId || `user-${Date.now()}`,
-        context,
-        stream: false
-      })
+      body: JSON.stringify(body)
     })
 
     if (!response.ok) throw new Error('API request failed')
     return response.json()
   },
 
-  async streamMessage(message, assistantType, history = [], userId = null, context = {}, onChunk) {
+  async streamMessage(message, assistantType, options = {}, onChunk) {
+    const body = buildRequestBody(message, assistantType, { ...options, stream: true })
+
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message,
-        assistantType,
-        history,
-        userId: userId || `user-${Date.now()}`,
-        context,
-        stream: true
-      })
+      body: JSON.stringify(body)
     })
 
     if (!response.ok) throw new Error('Stream request failed')
@@ -680,8 +771,12 @@ data: [DONE]
 
 ### Required Environment Variables (.env)
 ```bash
+# Backend Configuration (CRITICAL for proper routing)
+BACKEND_URL=http://localhost:3000    # Motia backend port
+NEXT_PUBLIC_API_URL=http://localhost:3000   # For Next.js apps
+
 # API Configuration
-VITE_API_URL=http://localhost:3000/api
+VITE_API_URL=http://localhost:3000/api       # For Vite apps
 
 # Supabase Configuration (if using)
 VITE_SUPABASE_URL=your_supabase_url
@@ -693,6 +788,12 @@ VITE_OPENAI_API_KEY=your_api_key
 # TradingView (if using advanced features)
 VITE_TRADINGVIEW_CONTAINER_ID=tradingview_widget
 ```
+
+### Port Configuration Reference
+- **Port 3000**: Motia backend (handles actual API requests)
+- **Port 3001**: Next.js web app (proxies to backend)
+- **Port 5174**: Vite React app (proxies to backend or Next.js)
+- **Port 5173**: Default Vite dev server port
 
 ## Testing Checklist
 
@@ -766,11 +867,38 @@ npm run preview
 ## Common Issues & Solutions
 
 ### Issue: Inconsistent API Responses Between Frontend Apps
-**Solution**:
-1. Ensure all request parameters are included (message, assistantType, userId, history, stream, context)
-2. Backend schema must accept all parameters even if optional
-3. Use consistent userId across requests or let backend generate it
-4. Include conversation history for context-aware responses
+**Diagnosis**: Different frontend apps sending different payload structures or routing to different endpoints.
+
+**Solution Checklist**:
+1. **Verify Payload Structure**:
+   - Use browser DevTools Network tab to inspect actual requests
+   - Compare payloads between apps - they should be identical
+   - All apps must include: message, assistantType, userId, context, history, stream
+
+2. **Check API Routing**:
+   - **Vite Apps**: Ensure proxy configuration points to correct backend
+   - **Next.js Apps**: Verify API route forwards to backend (not mocking responses)
+   - **Direct Backend**: Ensure backend URL is correct (default: http://localhost:3000)
+
+3. **Common Routing Mistakes**:
+   - Next.js API route returning mock data instead of forwarding
+   - Vite proxy targeting wrong port (should proxy to backend, not another frontend)
+   - Missing environment variables for backend URL
+
+4. **Testing**:
+   ```bash
+   # Test directly against backend to verify it works
+   curl -X POST http://localhost:3000/api/chat/stream \
+     -H "Content-Type: application/json" \
+     -d '{
+       "message": "test",
+       "assistantType": "general",
+       "userId": "test-user",
+       "context": {"symbols": [], "timeframe": "1d", "riskTolerance": "moderate"},
+       "history": [],
+       "stream": true
+     }'
+   ```
 
 ### Issue: TradingView Widget Not Loading
 **Solution**: Check CSP headers in vite.config.js, ensure TradingView domains are whitelisted
