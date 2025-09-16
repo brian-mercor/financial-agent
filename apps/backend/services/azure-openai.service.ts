@@ -33,14 +33,12 @@ export class AzureOpenAIService {
       return;
     }
     
-    // Extract base URL from full endpoint
-    // From: https://ai-hello8437ai492250619539.cognitiveservices.azure.com/openai/deployments/model-router/chat/completions?api-version=2025-01-01-preview
-    // To: https://ai-hello8437ai492250619539.cognitiveservices.azure.com
-    const baseURL = endpoint.split('/openai')[0];
+    // Ensure endpoint has proper format
+    const baseURL = endpoint.endsWith('/') ? endpoint.slice(0, -1) : endpoint;
     
     this.client = new OpenAI({
       apiKey,
-      baseURL: `${baseURL}/openai`,
+      baseURL: `${baseURL}/openai/deployments/${this.deploymentName}`,
       defaultQuery: { 'api-version': apiVersion },
       defaultHeaders: { 
         'api-key': apiKey,

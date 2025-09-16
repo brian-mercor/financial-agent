@@ -43,7 +43,7 @@ export class LLMService {
     if (process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
       this.azureClient = new OpenAI({
         apiKey: process.env.AZURE_OPENAI_API_KEY,
-        baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}`,
+        baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME}`,
         defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-02-01' },
         defaultHeaders: {
           'api-key': process.env.AZURE_OPENAI_API_KEY,
@@ -92,7 +92,7 @@ export class LLMService {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message },
           ],
-          model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4',
           temperature: 0.7,
           max_tokens: 2048,
           stream: false,
@@ -101,7 +101,7 @@ export class LLMService {
         return {
           content: completion.choices[0]?.message?.content || '',
           provider: 'azure',
-          model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4',
           tokensUsed: completion.usage?.total_tokens,
         };
       } catch (error) {
@@ -200,7 +200,7 @@ export class LLMService {
             { role: 'system', content: systemPrompt },
             { role: 'user', content: message },
           ],
-          model: process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || 'gpt-4',
           temperature: 0.7,
           max_tokens: 2048,
           stream: true,
