@@ -98,6 +98,15 @@ app-name/
 }
 ```
 
+### Important Note on API Request Format
+When sending requests to the backend API, ensure that the request body includes all expected parameters:
+- **message**: The user's message (required)
+- **assistantType**: The type of assistant (optional, defaults to 'general')
+- **userId**: User identifier (optional, auto-generated if not provided)
+- **history**: Array of previous messages for context (optional)
+- **stream**: Boolean flag for streaming responses (optional)
+- **context**: Additional context object (optional)
+
 ## Configuration Files
 
 ### 1. Vite Configuration (vite.config.js)
@@ -186,22 +195,36 @@ export default {
 const API_BASE_URL = '/api'
 
 export const apiService = {
-  async sendMessage(message, assistantType, history = []) {
-    const response = await fetch(`${API_BASE_URL}/chat`, {
+  async sendMessage(message, assistantType, history = [], userId = null, context = {}) {
+    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, assistantType, history })
+      body: JSON.stringify({
+        message,
+        assistantType,
+        history,
+        userId: userId || `user-${Date.now()}`,
+        context,
+        stream: false
+      })
     })
 
     if (!response.ok) throw new Error('API request failed')
     return response.json()
   },
 
-  async streamMessage(message, assistantType, history = [], onChunk) {
+  async streamMessage(message, assistantType, history = [], userId = null, context = {}, onChunk) {
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message, assistantType, history, stream: true })
+      body: JSON.stringify({
+        message,
+        assistantType,
+        history,
+        userId: userId || `user-${Date.now()}`,
+        context,
+        stream: true
+      })
     })
 
     if (!response.ok) throw new Error('Stream request failed')
@@ -577,9 +600,11 @@ export const assistants = [
 ### Standard Chat Response
 ```json
 {
-  "message": "Here's the analysis of AAPL...",
+  "traceId": "unique-trace-id",
+  "response": "Here's the analysis of AAPL...",
   "assistantType": "market-analyst",
-  "timestamp": "2025-01-16T12:00:00Z",
+  "llmProvider": "groq",
+  "model": "llama-3.3-70b-versatile",
   "hasChart": false
 }
 ```
@@ -587,12 +612,32 @@ export const assistants = [
 ### Chart Response
 ```json
 {
-  "message": "Here's the chart for AAPL showing the recent price action...",
+  "traceId": "unique-trace-id",
+  "response": "Here's the chart for AAPL showing the recent price action...",
   "assistantType": "market-analyst",
-  "timestamp": "2025-01-16T12:00:00Z",
+  "llmProvider": "groq",
+  "model": "chart-display",
   "hasChart": true,
   "chartHtml": "<div id='tradingview_widget'>...</div><script>...</script>",
+  "chartIframe": "<iframe src='https://s.tradingview.com/...'></iframe>",
+  "chartConfig": {
+    "symbol": "AAPL",
+    "containerId": "tradingview_aapl_123456",
+    "height": 500,
+    "width": "100%",
+    "interval": "1D"
+  },
   "symbol": "AAPL"
+}
+```
+
+### Workflow Response (Multi-Agent)
+```json
+{
+  "workflowId": "unique-workflow-id",
+  "message": "Workflow initiated successfully",
+  "agents": ["market-analyst", "trading-advisor"],
+  "estimatedTime": 30
 }
 ```
 
@@ -720,6 +765,13 @@ npm run preview
 
 ## Common Issues & Solutions
 
+### Issue: Inconsistent API Responses Between Frontend Apps
+**Solution**:
+1. Ensure all request parameters are included (message, assistantType, userId, history, stream, context)
+2. Backend schema must accept all parameters even if optional
+3. Use consistent userId across requests or let backend generate it
+4. Include conversation history for context-aware responses
+
 ### Issue: TradingView Widget Not Loading
 **Solution**: Check CSP headers in vite.config.js, ensure TradingView domains are whitelisted
 
@@ -733,11 +785,18 @@ npm run preview
 **Solution**: Import globals.css in main.jsx, check Tailwind configuration
 
 ### Issue: Supabase Authentication Errors (401 Unauthorized / CSP Violations)
-**Solution**: 
+**Solution**:
 1. Ensure CSP includes `https://*.supabase.co wss://*.supabase.co` in `connect-src`
 2. Use JWT format keys (eyJ...) not the deprecated sb_publishable_ format
 3. Verify keys match your Supabase project configuration
 4. Check that your Supabase project hasn't disabled legacy API keys
+
+### Issue: Backend Validation Errors on Request
+**Solution**:
+1. Check backend Zod schema matches frontend request structure
+2. Ensure all fields are properly typed in the request body
+3. Verify optional fields are marked as optional in backend schema
+4. Include proper TypeScript types for history array elements
 
 ## Additional Resources
 
