@@ -14,6 +14,19 @@ export default defineConfig(({ mode }) => {
           target: 'http://localhost:3000',
           changeOrigin: true
         }
+      },
+      headers: {
+        'Content-Security-Policy': [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com",
+          "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
+          "img-src 'self' data: blob: https://*.tradingview.com https://s3.tradingview.com",
+          "connect-src 'self' wss://*.tradingview.com https://*.tradingview.com https://api.openai.com https://*.supabase.co wss://*.supabase.co",
+          "frame-src 'self' https://*.tradingview.com",
+          "worker-src 'self' blob:",
+          "child-src blob:",
+          "object-src 'none'"
+        ].join('; ')
       }
     },
     define: {

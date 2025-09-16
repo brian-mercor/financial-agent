@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { AgentStatusPanel } from './AgentStatusPanel'
+import { ChartRenderer } from './ChartRenderer'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
@@ -154,10 +155,12 @@ export function SmartChatInterface({ assistant }) {
                       </div>
                     )}
                     {message.chartHtml && (
-                      <div
-                        className="mt-4 bg-gray-50 rounded-lg p-4"
-                        dangerouslySetInnerHTML={{ __html: message.chartHtml }}
-                      />
+                      <div className="mt-4">
+                        <ChartRenderer 
+                          chartHtml={message.chartHtml}
+                          height="400px"
+                        />
+                      </div>
                     )}
                   </div>
                   {message.role === 'user' && (

@@ -5,7 +5,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL ||
                    import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_URL ||
                    'https://fuaogvgmdgndldimnnrs.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY ||
-                       import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_ANON_KEY ||
-                       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ1YW9ndmdtZGduZGxkaW1ubnJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NDY2ODQ0MjIsImV4cCI6MTk2MjI2MDQyMn0.dummy-key-for-build'
+                       import.meta.env.VITE_NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Create client with auth options for new publishable keys
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+})
