@@ -5,8 +5,8 @@ class ApiService {
 
   async sendMessage(message, assistantType = 'general', history = []) {
     try {
-      // First try the streaming endpoint which has chart support
-      const response = await fetch('/api/chat/stream', {
+      // Use the assistant endpoint which is available in the web app
+      const response = await fetch('/api/assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -32,30 +32,7 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('API Error:', error);
-      
-      // Fallback to basic chat endpoint
-      try {
-        const fallbackResponse = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message,
-            assistantType,
-            history,
-          }),
-        });
-
-        if (!fallbackResponse.ok) {
-          throw new Error(`HTTP error! status: ${fallbackResponse.status}`);
-        }
-
-        return await fallbackResponse.json();
-      } catch (fallbackError) {
-        console.error('Fallback API Error:', fallbackError);
-        throw fallbackError;
-      }
+      throw error;
     }
   }
 

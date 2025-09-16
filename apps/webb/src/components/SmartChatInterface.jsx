@@ -38,7 +38,18 @@ export function SmartChatInterface({ assistant }) {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      // Add assistant message placeholder for streaming
+      const assistantMessageId = (Date.now() + 1).toString()
+      const assistantMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+      }
+      setMessages(prev => [...prev, assistantMessage])
+
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,6 +58,7 @@ export function SmartChatInterface({ assistant }) {
           message: input,
           assistantType: assistant.id,
           history: messages,
+          stream: true,
         }),
       })
 
@@ -54,28 +66,91 @@ export function SmartChatInterface({ assistant }) {
         throw new Error('Failed to get response')
       }
 
-      const data = await response.json()
+      // Check if response is streaming
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('text/event-stream')) {
+        // Handle SSE streaming
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let fullContent = ''
 
-      // Handle workflow if present
-      if (data.workflowId) {
-        setActiveWorkflow({
-          workflowId: data.workflowId,
-          agents: data.agents || [],
-          estimatedTime: data.estimatedTime || 30,
-        })
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') {
+                // Update message to mark as complete
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? { ...msg, isStreaming: false }
+                    : msg
+                ))
+                break
+              }
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.content) {
+                  fullContent += parsed.content
+                  // Update message with accumulated content
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: fullContent }
+                      : msg
+                  ))
+                }
+                if (parsed.chartHtml) {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, chartHtml: parsed.chartHtml, hasChart: true }
+                      : msg
+                  ))
+                }
+                if (parsed.workflowId) {
+                  setActiveWorkflow({
+                    workflowId: parsed.workflowId,
+                    agents: parsed.agents || [],
+                    estimatedTime: parsed.estimatedTime || 30,
+                  })
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE data:', e)
+              }
+            }
+          }
+        }
+      } else {
+        // Handle regular JSON response (fallback)
+        const data = await response.json()
+        
+        if (data.workflowId) {
+          setActiveWorkflow({
+            workflowId: data.workflowId,
+            agents: data.agents || [],
+            estimatedTime: data.estimatedTime || 30,
+          })
+        }
+
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { 
+                ...msg, 
+                content: data.message || data.content || 'I understand. How can I help you further?',
+                workflowId: data.workflowId,
+                chartHtml: data.chartHtml,
+                hasChart: data.hasChart,
+                isStreaming: false 
+              }
+            : msg
+        ))
       }
-
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: data.message || data.content || 'I understand. How can I help you further?',
-        timestamp: new Date(),
-        workflowId: data.workflowId,
-        chartHtml: data.chartHtml,
-        hasChart: data.hasChart,
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMessage = {
@@ -148,11 +223,22 @@ export function SmartChatInterface({ assistant }) {
                     {message.role === 'user' ? (
                       <p className="whitespace-pre-wrap">{message.content}</p>
                     ) : (
-                      <div className="prose prose-sm max-w-none">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {message.content}
-                        </ReactMarkdown>
-                      </div>
+                      <>
+                        <div className="prose prose-sm max-w-none">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {message.content}
+                          </ReactMarkdown>
+                          {message.isStreaming && message.content && (
+                            <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1" />
+                          )}
+                        </div>
+                        {message.isStreaming && !message.content && (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                            <span className="text-gray-500 text-sm">Thinking...</span>
+                          </div>
+                        )}
+                      </>
                     )}
                     {message.chartHtml && (
                       <div className="mt-4">
@@ -170,18 +256,6 @@ export function SmartChatInterface({ assistant }) {
               </div>
             </div>
           ))
-        )}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white shadow-md rounded-2xl px-6 py-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg ${assistant.color}`}>
-                  <Loader2 className="h-4 w-4 text-white animate-spin" />
-                </div>
-                <span className="text-gray-500">Thinking...</span>
-              </div>
-            </div>
-          </div>
         )}
         <div ref={messagesEndRef} />
       </div>
