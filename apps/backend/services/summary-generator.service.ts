@@ -40,26 +40,7 @@ Use markdown formatting with headers, bold text for emphasis, and tables where a
 Make it actionable and easy to understand for decision-making.`;
 
     try {
-      // Try Groq first
-      if (groqService.isConfigured()) {
-        const completion = await groqService.createChatCompletion({
-          messages: [
-            { role: 'system', content: summaryPrompt },
-            { role: 'user', content: 'Generate the executive summary based on the multi-agent analysis.' }
-          ],
-          model: 'llama-3.3-70b-versatile',
-          temperature: 0.7,
-          max_tokens: 2000,
-        });
-        
-        if ('choices' in completion) {
-          return this.formatExecutiveSummary(
-            completion.choices[0]?.message?.content || 'Unable to generate summary'
-          );
-        }
-      }
-      
-      // Fallback to Azure
+      // Skip Groq and use Azure OpenAI with model router directly
       if (azureOpenAI.isConfigured()) {
         const completion = await azureOpenAI.createChatCompletion({
           model: 'model-router',

@@ -153,13 +153,84 @@ export class AzureOpenAIService {
       embeddings: true,
       functionCalling: true,
       visionSupport: true, // Model router can handle vision models
-      maxTokens: 128000, // GPT-4 Turbo max
+      maxTokens: 256000, // GPT-5 max context window
       models: [
-        'gpt-4-turbo',
-        'gpt-4',
-        'gpt-35-turbo',
+        'gpt-5',           // Latest GPT-5 model (2025-08-07)
+        'gpt-5-chat',      // GPT-5 optimized for chat (2025-08-07)
+        'gpt-5-mini',      // Smaller GPT-5 variant (2025-08-07)
+        'gpt-5-nano',      // Smallest GPT-5 variant (2025-08-07)
+        'o4-mini',         // O4 mini model (2025-04-16)
+        'gpt-4.1',         // GPT-4.1 (2025-04-14)
+        'gpt-4.1-mini',    // GPT-4.1 mini variant (2025-04-14)
+        'gpt-4.1-nano',    // GPT-4.1 nano variant (2025-04-14)
         'text-embedding-ada-002'
-      ]
+      ],
+      modelDetails: {
+        'gpt-5': {
+          name: 'GPT-5',
+          description: 'Latest generation model with advanced reasoning and longest context',
+          contextWindow: 256000,
+          capabilities: ['chat', 'function-calling', 'vision', 'advanced-reasoning'],
+          recommended: true,
+          version: '2025-08-07'
+        },
+        'gpt-5-chat': {
+          name: 'GPT-5 Chat',
+          description: 'GPT-5 optimized for conversational interactions',
+          contextWindow: 256000,
+          capabilities: ['chat', 'function-calling', 'vision', 'conversational'],
+          recommended: true,
+          version: '2025-08-07'
+        },
+        'gpt-5-mini': {
+          name: 'GPT-5 Mini',
+          description: 'Smaller, faster GPT-5 variant with excellent performance',
+          contextWindow: 128000,
+          capabilities: ['chat', 'function-calling', 'vision'],
+          recommended: false,
+          version: '2025-08-07'
+        },
+        'gpt-5-nano': {
+          name: 'GPT-5 Nano',
+          description: 'Smallest GPT-5 variant for quick responses',
+          contextWindow: 64000,
+          capabilities: ['chat', 'function-calling'],
+          recommended: false,
+          version: '2025-08-07'
+        },
+        'o4-mini': {
+          name: 'O4 Mini',
+          description: 'Advanced reasoning model in compact form',
+          contextWindow: 128000,
+          capabilities: ['chat', 'function-calling', 'reasoning'],
+          recommended: false,
+          version: '2025-04-16'
+        },
+        'gpt-4.1': {
+          name: 'GPT-4.1',
+          description: 'Enhanced GPT-4 with improved capabilities',
+          contextWindow: 128000,
+          capabilities: ['chat', 'function-calling', 'vision'],
+          recommended: false,
+          version: '2025-04-14'
+        },
+        'gpt-4.1-mini': {
+          name: 'GPT-4.1 Mini',
+          description: 'Compact GPT-4.1 for efficient processing',
+          contextWindow: 64000,
+          capabilities: ['chat', 'function-calling'],
+          recommended: false,
+          version: '2025-04-14'
+        },
+        'gpt-4.1-nano': {
+          name: 'GPT-4.1 Nano',
+          description: 'Smallest GPT-4.1 variant for basic tasks',
+          contextWindow: 32000,
+          capabilities: ['chat', 'function-calling'],
+          recommended: false,
+          version: '2025-04-14'
+        }
+      }
     };
   }
   

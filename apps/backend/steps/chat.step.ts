@@ -40,7 +40,7 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
       logger.info('Chart request detected', { symbol: detectedSymbol, traceId });
       
       await emit({
-        topic: 'symbol.detected',
+        topic: 'chart.requested',
         data: {
           symbol: detectedSymbol,
           originalMessage: req.body.message,
@@ -104,37 +104,9 @@ export const handler: Handlers['ChatWithAgent'] = async (req, { logger, state, t
     let llmProvider = 'none';
     let model = 'unknown';
     
-    // Priority 1: Try Groq with Llama (fastest, primary provider)
-    if (groqService.isConfigured()) {
-      logger.info('Using Groq with Llama 3 for ultra-fast inference');
-      try {
-        const completion = await groqService.createChatCompletion({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: req.body.message }
-          ],
-          model: 'llama-3.3-70b-versatile', // Use latest Llama 3.3 70B
-          temperature: 0.7,
-          max_tokens: 1500,
-        });
-        
-        // Type guard for streaming vs non-streaming response
-        if ('choices' in completion) {
-          response = completion.choices[0]?.message?.content || 'No response generated';
-        } else {
-          response = 'Streaming response not supported in this context';
-        }
-        llmProvider = 'groq';
-        model = 'llama-3.3-70b-versatile';
-        logger.info('Groq response received successfully', { llmProvider, model });
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        logger.warn('Groq failed, falling back to Azure', { error: errorMessage });
-        throw error; // Will be caught and trigger fallback
-      }
-    } 
-    // Priority 2: Azure OpenAI with Model Router (GPT-4/5)
-    else if (azureOpenAI.isConfigured()) {
+    // Skip Groq due to invalid API key - Use Azure OpenAI directly
+    // Priority 1: Azure OpenAI with Model Router (GPT-4/5)
+    if (azureOpenAI.isConfigured()) {
       logger.info('Using Azure OpenAI Model Router (GPT-4/5)');
       try {
         const completion = await azureOpenAI.createChatCompletion({
@@ -277,7 +249,8 @@ Your message: "${req.body.message}"`;
     });
     
     // Try fallback chain if primary provider fails
-    if (groqService.isConfigured() && !errorMessage.includes('Groq')) {
+    // Skip Groq fallback due to invalid API key
+    if (false && groqService.isConfigured() && !errorMessage.includes('Groq')) {
       // Already tried Groq, now try Azure
       if (azureOpenAI.isConfigured()) {
         logger.info('Attempting Azure OpenAI fallback');

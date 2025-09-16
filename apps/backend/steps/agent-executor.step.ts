@@ -86,24 +86,7 @@ ${contextPrompt}
 Provide a focused response addressing your specific task from your agent perspective.`;
 
   try {
-    // Try Groq first
-    if (groqService.isConfigured()) {
-      const completion = await groqService.createChatCompletion({
-        messages: [
-          { role: 'system', content: fullPrompt },
-          { role: 'user', content: userMessage }
-        ],
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0.7,
-        max_tokens: 1000,
-      });
-      
-      if ('choices' in completion) {
-        return completion.choices[0]?.message?.content || 'No response generated';
-      }
-    }
-    
-    // Fallback to Azure
+    // Skip Groq and use Azure OpenAI with model router directly
     if (azureOpenAI.isConfigured()) {
       const completion = await azureOpenAI.createChatCompletion({
         model: 'model-router',
@@ -136,6 +119,30 @@ Provide a focused response addressing your specific task from your agent perspec
       
       return completion.choices[0]?.message?.content || 'No response generated';
     }
+    
+    // Try Groq as last resort if configured (but skip if we know it's failing)
+    // Commenting out Groq to avoid invalid API key errors
+    /*
+    if (groqService.isConfigured()) {
+      try {
+        const completion = await groqService.createChatCompletion({
+          messages: [
+            { role: 'system', content: fullPrompt },
+            { role: 'user', content: userMessage }
+          ],
+          model: 'llama-3.3-70b-versatile',
+          temperature: 0.7,
+          max_tokens: 1000,
+        });
+        
+        if ('choices' in completion) {
+          return completion.choices[0]?.message?.content || 'No response generated';
+        }
+      } catch (groqError) {
+        console.error('Groq failed, continuing with mock response:', groqError);
+      }
+    }
+    */
     
     // No LLM configured - return mock response
     return `[${agent.toUpperCase()} AGENT]\n\nTask: ${task}\n\nAnalysis: This is a simulated response from the ${agent} agent. Configure an LLM provider to get actual AI-powered insights.\n\nKey Points:\n- Point 1 related to ${task}\n- Point 2 with ${agent} perspective\n- Point 3 with actionable insights`;
