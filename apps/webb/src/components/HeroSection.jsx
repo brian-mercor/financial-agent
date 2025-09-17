@@ -15,12 +15,12 @@ function HeroSection() {
               Built for performance, designed for simplicity.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 slide-in">
-              <button className="gradient-bg text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl transition pulse">
+              <a href="/login" className="gradient-bg text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl transition pulse inline-block text-center">
                 Get Started Now
-              </button>
-              <button className="bg-gray-900 text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl transition">
+              </a>
+              <a href="#features" className="bg-gray-900 text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-xl transition inline-block text-center">
                 Learn More
-              </button>
+              </a>
             </div>
           </div>
           <div className="lg:w-1/2 flex justify-center float-animation">
