@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LogOut, Menu, X, TrendingUp, DollarSign, Activity, PieChart, User } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
@@ -11,6 +11,27 @@ export default function DashboardPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // Add class to body to prevent scrolling on dashboard
+    document.body.style.overflow = 'hidden'
+    document.body.style.height = '100vh'
+    const root = document.getElementById('root')
+    if (root) {
+      root.style.height = '100vh'
+      root.style.overflow = 'hidden'
+    }
+
+    // Cleanup function to restore scrolling when leaving dashboard
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.height = ''
+      if (root) {
+        root.style.height = ''
+        root.style.overflow = ''
+      }
+    }
+  }, [])
 
   const handleSignOut = () => {
     signOut()
