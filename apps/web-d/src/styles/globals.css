@@ -1,0 +1,281 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root{
+  --gold: #FFD36E;
+  --gold-2: #F9C847;
+  --gold-3: #F2B807;
+  --deep-purple: #0C0616;
+  --violet-700: #5B2A86;
+  --violet-800: #4C1D95;
+  --ink: #120B1A;
+  --surface: rgba(22, 8, 36, 0.76);
+}
+
+html, body { height: 100%; }
+
+body {
+  background: radial-gradient(1200px 600px at 10% 5%, rgba(96, 44, 144, .18), transparent 60%),
+              radial-gradient(900px 700px at 90% 10%, rgba(30, 27, 75, .22), transparent 70%),
+              radial-gradient(1000px 700px at 50% 100%, rgba(88, 28, 135, .30), rgba(3, 3, 12, 0.9));
+  color: #EDE7F6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Starfield */
+.stars, .stars2, .stars3 {
+  position: fixed;
+  top: -50vh; left: 0; right:0; bottom:0;
+  width: 200%;
+  pointer-events: none;
+  opacity: 0.25;
+  background-repeat: repeat;
+  mix-blend-mode: screen;
+}
+
+.stars {
+  background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(255,255,255,0)),
+                    radial-gradient(1px 1px at 50px 80px, #fff, rgba(255,255,255,0)),
+                    radial-gradient(1.2px 1.2px at 120px 150px, #fff, rgba(255,255,255,0));
+  animation: drift 140s linear infinite;
+}
+
+.stars2 {
+  background-image: radial-gradient(1.5px 1.5px at 90px 40px, #fff, rgba(255,255,255,0)),
+                    radial-gradient(2px 2px at 160px 120px, #fff, rgba(255,255,255,0));
+  animation: drift 200s linear infinite reverse;
+  opacity: .18;
+}
+
+.stars3 {
+  background-image: radial-gradient(1px 1px at 130px 70px, #fff, rgba(255,255,255,0)),
+                    radial-gradient(2px 2px at 220px 200px, #fff, rgba(255,255,255,0));
+  animation: drift 260s linear infinite;
+  opacity: .12;
+}
+
+@keyframes drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%);}
+}
+
+/* Gold gradient text */
+.gold-text {
+  background: linear-gradient(90deg, var(--gold), var(--gold-2) 40%, #fff9d6 50%, var(--gold-3) 60%, var(--gold) 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50% }
+  50% { background-position: 100% 50% }
+  100% { background-position: 0% 50% }
+}
+
+/* Tarot panel ornate border */
+.tarot-panel {
+  position: relative;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+  backdrop-filter: blur(10px);
+  box-shadow:
+    0 30px 60px rgba(0,0,0,0.55),
+    inset 0 0 0 1px rgba(255, 211, 110, .18);
+}
+
+.tarot-panel::before, .tarot-panel::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.tarot-panel::before {
+  background: conic-gradient(from 0deg, rgba(255, 213, 111, .4), rgba(255, 255, 255, .05), rgba(255, 213, 111, .35));
+  mask: linear-gradient(#0000, #000);
+  filter: blur(6px);
+  opacity: .5;
+  animation: rotateGlow 16s linear infinite;
+}
+
+@keyframes rotateGlow {
+  to { transform: rotate(360deg); }
+}
+
+.corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border: 1.5px solid rgba(255, 211, 110, .75);
+}
+
+.corner.tl {
+  top: 10px;
+  left: 10px;
+  border-right: none;
+  border-bottom: none;
+  border-radius: 14px 0 0 0;
+}
+
+.corner.tr {
+  top: 10px;
+  right: 10px;
+  border-left: none;
+  border-bottom: none;
+  border-radius: 0 14px 0 0;
+}
+
+.corner.bl {
+  bottom: 10px;
+  left: 10px;
+  border-right: none;
+  border-top: none;
+  border-radius: 0 0 0 14px;
+}
+
+.corner.br {
+  bottom: 10px;
+  right: 10px;
+  border-left: none;
+  border-top: none;
+  border-radius: 0 0 14px 0;
+}
+
+/* Guide card */
+.guide-card {
+  transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s, border-color .35s, background-color .35s;
+  background: linear-gradient(180deg, rgba(107, 33, 168, .16), rgba(0,0,0,.12));
+  border: 1.2px solid rgba(255, 211, 110, .24);
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.guide-card:hover {
+  transform: translateY(-4px) rotateX(2deg) rotateY(-2deg);
+  box-shadow: 0 18px 40px rgba(0,0,0,0.5);
+}
+
+.guide-card.active {
+  border-color: rgba(255, 211, 110, .9);
+  box-shadow: 0 20px 44px rgba(255, 211, 110, 0.18), 0 14px 34px rgba(0,0,0,0.5);
+}
+
+/* Button */
+.btn-gold {
+  background: linear-gradient(180deg, #FBDD96, #F2B807);
+  color: #341A00;
+  box-shadow: 0 10px 24px rgba(251, 221, 150, .22), inset 0 1px 0 rgba(255,255,255,.6);
+  transition: transform .2s, box-shadow .2s, filter .2s;
+}
+
+.btn-gold:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 32px rgba(251, 221, 150, .28), inset 0 1px 0 rgba(255,255,255,.9);
+  filter: saturate(1.05);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(251,221,150,.25);
+}
+
+.btn-ghost {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255, 211, 110, .28);
+  color: #FFE9B3;
+}
+
+.btn-ghost:hover {
+  background: rgba(255,255,255,.12);
+}
+
+/* Spinner */
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  border: 2px solid rgba(0,0,0,0);
+  border-top-color: #5C2E8E;
+  border-right-color: rgba(255, 211, 110, .95);
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .stars, .stars2, .stars3, .tarot-panel::before, .gold-text {
+    animation: none !important;
+  }
+}
+
+/* Form inputs */
+.input {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  transition: border-color .2s, box-shadow .2s, background-color .2s;
+}
+
+.input:focus {
+  outline: none;
+  border-color: rgba(255, 211, 110, .6);
+  box-shadow: 0 0 0 4px rgba(255, 211, 110, .14);
+  background: rgba(255,255,255,0.06);
+}
+
+/* Tooltip */
+.tooltip {
+  position: relative;
+}
+
+.tooltip:hover .tooltip-panel {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.tooltip-panel {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, -6px);
+  top: -44px;
+  background: rgba(25, 13, 37, .96);
+  color: #FFEFBF;
+  border: 1px solid rgba(255, 211, 110, .35);
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(0,0,0,.35);
+  opacity: 0;
+  transition: .2s;
+  pointer-events: none;
+}
+
+/* Mobile deck drawer */
+.drawer {
+  transition: max-height .45s cubic-bezier(.2,.8,.2,1), opacity .25s;
+  overflow: hidden;
+}
+
+/* Selection chips */
+.chip {
+  border: 1px solid rgba(255, 211, 110, .22);
+  background: rgba(255,255,255,.06);
+  color: #FCEBB3;
+  transition: .2s;
+}
+
+.chip:hover {
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255, 211, 110, .5);
+}
