@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #0A0A0A;
+}
+
+/* Brutalist utilities */
+.brutal-card {
+  background: #111111;
+  border: 3px solid #2A2A2A;
+  box-shadow: 8px 8px 0 0 #111111;
+}
+
+.brutal-contrast {
+  background: #0A0A0A;
+  border: 3px solid #2A2A2A;
+  box-shadow: 8px 8px 0 0 #111111;
+}
+
+.btn-brutal {
+  border: 3px solid #FF2D2D;
+  background: #FF2D2D;
+  color: #0A0A0A;
+  box-shadow: 8px 8px 0 0 #111111;
+  transition: transform 120ms cubic-bezier(.2,.7,.2,1), box-shadow 120ms;
+}
+.btn-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 12px 12px 0 0 #111111;
+}
+.btn-brutal:active {
+  transform: translate(0, 0);
+  box-shadow: 6px 6px 0 0 #111111;
+}
+
+.btn-ghost {
+  border: 3px solid #2A2A2A;
+  background: transparent;
+  color: #F5F5F5;
+  box-shadow: 8px 8px 0 0 #111111;
+  transition: transform 120ms, box-shadow 120ms, background 120ms;
+}
+.btn-ghost:hover {
+  background: #111111;
+  transform: translate(-2px, -2px);
+  box-shadow: 12px 12px 0 0 #111111;
+}
+
+.stroke-text {
+  -webkit-text-stroke: 2px #F5F5F5;
+  color: transparent;
+}
+
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(to bottom, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 2px, transparent 2px, transparent 4px);
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+.ticker {
+  animation: ticker 24s linear infinite;
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.grid-bg {
+  background-image: linear-gradient(#1c1c1c 2px, transparent 2px), linear-gradient(90deg, #1c1c1c 2px, transparent 2px);
+  background-size: 40px 40px, 40px 40px;
+  background-position: -3px -3px, -3px -3px;
+}
+
+.concrete {
+  background-image: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.06) 0 12%, transparent 12%), radial-gradient(circle at 60% 40%, rgba(255,255,255,0.04) 0 10%, transparent 10%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.05) 0 9%, transparent 9%);
+  background-color: #0A0A0A;
+}
+
+.underline-red {
+  box-shadow: inset 0 -0.6em 0 0 rgba(255,45,45,0.2);
+}
+
+/* Charts */
+canvas.spark {
+  image-rendering: pixelated;
+}
+
+/* Responsive tweaks */
+@media (max-width: 480px) {
+  .stroke-text {
+    -webkit-text-stroke: 1.5px #F5F5F5;
+  }
+}
