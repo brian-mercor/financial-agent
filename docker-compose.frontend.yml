@@ -1,0 +1,54 @@
+version: '3.8'
+
+# Docker Compose for Frontend Apps with Nginx Routing
+# This configuration runs multiple frontend apps behind a single Nginx reverse proxy
+# Each app is accessible via different paths or subdomains
+
+services:
+  # Main web application
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL:-https://finagent-backend-pps457j4wjrc6.azurewebsites.net}
+      - NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    networks:
+      - frontend
+    restart: unless-stopped
+
+  # Landing page application
+  landing:
+    build:
+      context: ./apps/finagent-landing
+      dockerfile: Dockerfile
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - NEXT_PUBLIC_API_URL=${BACKEND_URL:-https://finagent-backend-pps457j4wjrc6.azurewebsites.net}
+    networks:
+      - frontend
+    restart: unless-stopped
+
+  # Nginx reverse proxy to route traffic to different frontend apps
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - web
+      - landing
+    networks:
+      - frontend
+    restart: unless-stopped
+
+networks:
+  frontend:
+    driver: bridge
