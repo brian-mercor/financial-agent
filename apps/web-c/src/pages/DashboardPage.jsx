@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { SmartChatInterface } from '../components/SmartChatInterface'
 import { assistants } from '../config/assistants'
-import { TrendingUp, LogOut, Menu, X, DollarSign, Activity, PieChart } from 'lucide-react'
 
 export default function DashboardPage() {
   const { user, signOut } = useAuth()
@@ -17,50 +16,52 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-brutal-bg font-grotesk text-brutal-fg">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 bg-white border-r border-gray-200 flex flex-col overflow-hidden`}>
-        <div className="p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp className="h-8 w-8 text-purple-600" />
-            <span className="text-xl font-bold">FinAgent</span>
-          </div>
-          <div className="text-sm text-gray-600">
-            Welcome, {user?.name || user?.email?.split('@')[0] || 'Trader'}
+      <div className={`${sidebarOpen ? 'w-72' : 'w-0'} transition-all duration-300 bg-brutal-ink border-r-4 border-brutal-line flex flex-col overflow-hidden`}>
+        {/* Header */}
+        <div className="p-4 border-b-4 border-brutal-line">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 brutal-card grid place-items-center">
+              <span className="font-mono font-bold text-brutal-red">FA</span>
+            </div>
+            <div>
+              <span className="text-lg font-extrabold">FinAgent</span>
+              <div className="text-xs font-mono uppercase text-gray-500">
+                {user?.email?.split('@')[0] || 'Trader'}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Portfolio Summary */}
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Portfolio Summary</h3>
+        {/* Portfolio Stats */}
+        <div className="p-4 border-b-4 border-brutal-line">
+          <h3 className="text-xs font-mono uppercase text-brutal-red mb-4">Portfolio Status</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-green-600" />
-                <span className="text-sm">Total Value</span>
+            <div className="brutal-card p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase">Value</span>
+                <span className="text-sm font-mono font-bold">$125,430</span>
               </div>
-              <span className="text-sm font-semibold">$125,430</span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-blue-600" />
-                <span className="text-sm">Day Change</span>
+            <div className="brutal-card p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase">Day +/-</span>
+                <span className="text-sm font-mono font-bold text-brutal-red">+2.4%</span>
               </div>
-              <span className="text-sm font-semibold text-green-600">+2.4%</span>
             </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <PieChart className="h-4 w-4 text-purple-600" />
-                <span className="text-sm">Allocation</span>
+            <div className="brutal-card p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono uppercase">Risk</span>
+                <span className="text-sm font-mono font-bold">MODERATE</span>
               </div>
-              <span className="text-sm font-semibold">Balanced</span>
             </div>
           </div>
         </div>
 
-        {/* AI Assistants */}
+        {/* AI Agents */}
         <div className="flex-1 overflow-y-auto p-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">AI Assistants</h3>
+          <h3 className="text-xs font-mono uppercase text-brutal-red mb-4">AI Agents</h3>
           <div className="space-y-2">
             {assistants.map((assistant) => {
               const Icon = assistant.icon
@@ -68,19 +69,20 @@ export default function DashboardPage() {
                 <button
                   key={assistant.id}
                   onClick={() => setSelectedAssistant(assistant)}
-                  className={`w-full p-3 rounded-lg text-left transition ${
+                  className={`w-full text-left transition-all ${
                     selectedAssistant.id === assistant.id
-                      ? 'bg-purple-50 border border-purple-300'
-                      : 'hover:bg-gray-50 border border-transparent'
+                      ? 'brutal-card bg-brutal-red text-brutal-bg'
+                      : 'brutal-card hover:translate-x-1'
                   }`}
+                  style={{ padding: '12px' }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`${assistant.color} p-2 rounded-lg text-white`}>
-                      <Icon className="h-5 w-5" />
+                    <div className={`p-2 ${selectedAssistant.id === assistant.id ? 'bg-brutal-bg text-brutal-red' : 'bg-brutal-gray'}`}>
+                      <Icon className="h-4 w-4" />
                     </div>
                     <div className="flex-1">
-                      <div className="font-medium text-sm">{assistant.name}</div>
-                      <div className="text-xs text-gray-500">{assistant.description}</div>
+                      <div className="font-mono text-xs uppercase font-bold">{assistant.name}</div>
+                      <div className="text-xs opacity-80">{assistant.description}</div>
                     </div>
                   </div>
                 </button>
@@ -90,13 +92,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Sign Out */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t-4 border-brutal-line">
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition"
+            className="w-full btn-ghost py-3 font-mono text-xs uppercase"
           >
-            <LogOut className="h-4 w-4" />
-            <span>Sign Out</span>
+            [ DISCONNECT ]
           </button>
         </div>
       </div>
@@ -104,27 +105,39 @@ export default function DashboardPage() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="bg-brutal-ink border-b-4 border-brutal-line px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition"
+              className="brutal-card p-2 hover:bg-brutal-red hover:text-brutal-bg transition-colors"
             >
-              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+              <span className="font-mono text-xs">{sidebarOpen ? '<<<' : '>>>'}</span>
             </button>
-            <h1 className="text-xl font-semibold">{selectedAssistant.name}</h1>
+            <div>
+              <h1 className="text-xl font-extrabold">{selectedAssistant.name}</h1>
+              <div className="flex gap-2 mt-1">
+                {selectedAssistant.expertise.map((skill, index) => (
+                  <span key={index} className="text-xs font-mono uppercase text-brutal-red">
+                    {skill} {index < selectedAssistant.expertise.length - 1 && '•'}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {selectedAssistant.expertise.map((skill, index) => (
-              <span key={index} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                {skill}
-              </span>
-            ))}
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-mono uppercase">
+              <span className="text-gray-500">Status:</span>{' '}
+              <span className="text-brutal-red">ONLINE</span>
+            </div>
+            <div className="text-xs font-mono uppercase">
+              <span className="text-gray-500">Market:</span>{' '}
+              <span className="text-brutal-red">OPEN</span>
+            </div>
           </div>
         </div>
 
         {/* Chat Interface */}
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden bg-brutal-bg">
           <SmartChatInterface assistant={selectedAssistant} />
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChartRenderer } from './ChartRenderer'
@@ -44,7 +43,7 @@ export function SmartChatInterface({ assistant }) {
       const assistantMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: response.response || response.message || response.content || 'I understand your request. Let me analyze that for you.',
+        content: response.response || response.message || response.content || 'Processing your request...',
         timestamp: new Date(),
         chartHtml: response.chartHtml,
         hasChart: response.hasChart,
@@ -56,7 +55,7 @@ export function SmartChatInterface({ assistant }) {
       const errorMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: 'I apologize, but I encountered an issue connecting to the server. Please make sure the backend is running on port 3000.',
+        content: 'CONNECTION ERROR: Unable to reach backend. Verify server is running on port 3000.',
         timestamp: new Date(),
       }
       setMessages(prev => [...prev, errorMessage])
@@ -70,15 +69,15 @@ export function SmartChatInterface({ assistant }) {
     setMessages([{
       id: 'welcome',
       role: 'assistant',
-      content: `Hello! I'm your ${assistant.name}. I specialize in ${assistant.expertise.join(', ')}. How can I help you today?`,
+      content: `SYSTEM: ${assistant.name.toUpperCase()} INITIALIZED\n\nCapabilities: ${assistant.expertise.join(' | ')}\n\nReady for analysis.`,
       timestamp: new Date(),
     }])
   }, [assistant])
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
+    <div className="flex flex-col h-full bg-brutal-bg">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 scanline">
         {messages.map((message) => (
           <div
             key={message.id}
@@ -87,20 +86,20 @@ export function SmartChatInterface({ assistant }) {
             <div
               className={`max-w-3xl ${
                 message.role === 'user'
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
-                  : 'bg-white shadow-md'
-              } rounded-2xl px-6 py-4`}
+                  ? 'brutal-card bg-brutal-red text-brutal-bg'
+                  : 'brutal-card'
+              } p-4`}
             >
               <div className="flex items-start gap-3">
-                {message.role === 'assistant' && (
-                  <Sparkles className="h-5 w-5 text-purple-500 flex-shrink-0 mt-1" />
-                )}
                 <div className="flex-1">
+                  <div className="text-xs font-mono uppercase mb-2">
+                    {message.role === 'user' ? '> USER INPUT' : '< AI RESPONSE'}
+                  </div>
                   {message.role === 'user' ? (
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="font-mono text-sm whitespace-pre-wrap">{message.content}</p>
                   ) : (
                     <>
-                      <div className="prose prose-sm max-w-none">
+                      <div className="font-mono text-sm whitespace-pre-wrap">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
                           {message.content}
                         </ReactMarkdown>
@@ -115,20 +114,20 @@ export function SmartChatInterface({ assistant }) {
                       )}
                     </>
                   )}
+                  <div className="text-xs font-mono mt-2 opacity-50">
+                    {message.timestamp.toLocaleTimeString()}
+                  </div>
                 </div>
-                {message.role === 'user' && (
-                  <User className="h-5 w-5 flex-shrink-0" />
-                )}
               </div>
             </div>
           </div>
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-white shadow-md rounded-2xl px-6 py-4">
+            <div className="brutal-card p-4">
               <div className="flex items-center gap-3">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-                <span className="text-gray-500">Analyzing markets...</span>
+                <div className="animate-pulse text-brutal-red font-mono">█</div>
+                <span className="font-mono text-sm">PROCESSING...</span>
               </div>
             </div>
           </div>
@@ -137,45 +136,47 @@ export function SmartChatInterface({ assistant }) {
       </div>
 
       {/* Input Area */}
-      <div className="border-t bg-white p-4">
+      <div className="border-t-4 border-brutal-line bg-brutal-ink p-4">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Ask ${assistant.name} about markets, trading, or your portfolio...`}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="ENTER QUERY..."
+            className="flex-1 bg-brutal-bg border-2 border-brutal-line px-4 py-3 font-mono text-sm focus:outline-none focus:border-brutal-red transition-colors uppercase placeholder-gray-500"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
+            className="btn-brutal px-6 py-3 font-mono text-xs uppercase font-bold disabled:opacity-50"
           >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
+            {isLoading ? 'SENDING...' : 'EXECUTE'}
           </button>
         </form>
-        <div className="mt-2 flex gap-2">
+        <div className="mt-3 flex gap-2">
           <button
-            onClick={() => setInput('Analyze AAPL stock')}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition"
+            onClick={() => setInput('ANALYZE AAPL')}
+            className="bg-brutal-bg border-2 border-brutal-line px-3 py-2 font-mono text-xs uppercase hover:border-brutal-red transition-colors"
           >
-            Analyze AAPL
+            [AAPL]
           </button>
           <button
-            onClick={() => setInput('Show my portfolio risk')}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition"
+            onClick={() => setInput('PORTFOLIO RISK ASSESSMENT')}
+            className="bg-brutal-bg border-2 border-brutal-line px-3 py-2 font-mono text-xs uppercase hover:border-brutal-red transition-colors"
           >
-            Portfolio Risk
+            [RISK]
           </button>
           <button
-            onClick={() => setInput('What are trending stocks today?')}
-            className="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm text-gray-700 transition"
+            onClick={() => setInput('SHOW TRENDING STOCKS')}
+            className="bg-brutal-bg border-2 border-brutal-line px-3 py-2 font-mono text-xs uppercase hover:border-brutal-red transition-colors"
           >
-            Trending Stocks
+            [TRENDING]
+          </button>
+          <button
+            onClick={() => setInput('MARKET STATUS')}
+            className="bg-brutal-bg border-2 border-brutal-line px-3 py-2 font-mono text-xs uppercase hover:border-brutal-red transition-colors"
+          >
+            [STATUS]
           </button>
         </div>
       </div>
