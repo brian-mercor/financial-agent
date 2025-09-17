@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .gradient-bg {
+    @apply bg-gradient-to-r from-purple-500 to-indigo-600;
+  }
+
+  .gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-purple-500 to-indigo-600;
+  }
+
+  .card-shadow {
+    @apply shadow-lg hover:shadow-xl transition-shadow duration-300;
+  }
+}
