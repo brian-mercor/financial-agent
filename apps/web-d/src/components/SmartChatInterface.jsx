@@ -60,8 +60,8 @@ function SmartChatInterface({ assistant }) {
         timestamp: msg.timestamp
       }))
 
-      // Use real API streaming
-      await apiService.streamMessage(
+      // Since Motia doesn't support streaming, simulate it with typing effect
+      const response = await apiService.sendMessage(
         messageText,
         assistant.id,
         {
@@ -72,30 +72,40 @@ function SmartChatInterface({ assistant }) {
             timeframe: '1d',
             riskTolerance: 'moderate'
           }
-        },
-        (chunk) => {
-          // Handle streaming chunks
-          if (chunk.chunk) {
-            setMessages(prev => {
-              const newMessages = [...prev]
-              const lastMessage = newMessages[newMessages.length - 1]
-              lastMessage.content += chunk.chunk
-              return newMessages
-            })
-          }
+        }
+      )
 
-          // Handle charts if they come through
-          if (chunk.chartHtml) {
+      // Extract the response content
+      const responseContent = response.response || response.message || response.content || 'No response received'
+
+      // Simulate streaming effect by typing out the response
+      let currentIndex = 0
+      const typingSpeed = 10 // milliseconds per character
+
+      const typeInterval = setInterval(() => {
+        if (currentIndex < responseContent.length) {
+          setMessages(prev => {
+            const newMessages = [...prev]
+            const lastMessage = newMessages[newMessages.length - 1]
+            lastMessage.content = responseContent.substring(0, currentIndex + 1)
+            return newMessages
+          })
+          currentIndex++
+        } else {
+          clearInterval(typeInterval)
+
+          // Add chart if present after text is fully typed
+          if (response.chartHtml) {
             setMessages(prev => {
               const newMessages = [...prev]
               const lastMessage = newMessages[newMessages.length - 1]
-              lastMessage.chartHtml = chunk.chartHtml
+              lastMessage.chartHtml = response.chartHtml
               lastMessage.hasChart = true
               return newMessages
             })
           }
         }
-      )
+      }, typingSpeed)
 
     } catch (error) {
       console.error('Error sending message:', error)
