@@ -1,0 +1,46 @@
+import { createContext, useContext, useState, useEffect } from 'react'
+
+const AuthContext = createContext({})
+
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    // Check for existing session
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+    }
+    setLoading(false)
+  }, [])
+
+  const signIn = async (email, password) => {
+    // Mock authentication - replace with actual API call
+    const mockUser = { id: Date.now().toString(), email }
+    localStorage.setItem('user', JSON.stringify(mockUser))
+    setUser(mockUser)
+    return { success: true }
+  }
+
+  const signUp = async (name, email, password) => {
+    // Mock signup - replace with actual API call
+    const mockUser = { id: Date.now().toString(), email, name }
+    localStorage.setItem('user', JSON.stringify(mockUser))
+    setUser(mockUser)
+    return { success: true }
+  }
+
+  const signOut = () => {
+    localStorage.removeItem('user')
+    setUser(null)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export const useAuth = () => useContext(AuthContext)
