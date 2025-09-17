@@ -1,6 +1,6 @@
-# Webb - Modern Financial Dashboard
+# Web-A - Modern Financial Dashboard
 
-Webb is an alternative UI for the Fin Agent application, featuring a modern gradient design while maintaining all the functionality of the original web app.
+Web-A is an alternative UI for the Fin Agent application, featuring a modern gradient design while maintaining all the functionality of the original web app.
 
 ## Features
 
@@ -55,7 +55,7 @@ The main dashboard with:
 
 1. Install dependencies:
 ```bash
-cd apps/webb
+cd apps/web-a
 npm install
 ```
 
