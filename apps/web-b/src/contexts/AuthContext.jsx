@@ -16,16 +16,19 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signIn = async (email, password) => {
-    // Mock authentication - replace with actual API call
+    // MOCK AUTHENTICATION - Not connected to real backend
+    // TODO: Replace with actual Supabase authentication
     try {
       const mockUser = {
         id: Date.now().toString(),
         email: email,
-        name: email.split('@')[0]
+        name: email.split('@')[0],
+        isMockData: true // Clearly indicate this is mock data
       }
 
       localStorage.setItem('user', JSON.stringify(mockUser))
       setUser(mockUser)
+      console.warn('MOCK AUTH: Using mock authentication - not connected to real backend')
       return { success: true }
     } catch (error) {
       return { success: false, error: error.message }
@@ -33,7 +36,8 @@ export function AuthProvider({ children }) {
   }
 
   const signUp = async (email, password) => {
-    // Mock signup - replace with actual API call
+    // MOCK SIGNUP - Not connected to real backend
+    // TODO: Replace with actual Supabase signup
     return signIn(email, password)
   }
 

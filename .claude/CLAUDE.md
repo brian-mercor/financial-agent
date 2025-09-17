@@ -2,6 +2,20 @@
 
 You are helping develop a **Motia project** - a unified backend framework that uses event-driven architecture with multiple programming languages.
 
+## 🚫 CRITICAL SECURITY RULES
+
+### NO DUMMY KEYS OR FALLBACK CREDENTIALS
+- **NEVER** add dummy, fallback, or placeholder API keys/credentials in code
+- **NEVER** commit any real or fake credentials to the repository
+- Always require proper environment variables without fallbacks
+- If credentials are missing, the app should fail gracefully with clear error messages
+
+### MOCK DATA MUST BE CLEARLY LABELED
+- Any mock data or mock authentication MUST be clearly labeled as "MOCK" or "TEST"
+- Mock implementations should include comments like `// MOCK: Replace with actual API`
+- Mock data variables should include "mock" in their names (e.g., `mockUser`, `mockAuthResponse`)
+- UI using mock data should display warnings to users (e.g., "Using mock data - not connected to real backend")
+
 ## ⚠️ IMPORTANT: Setup Instructions for New Clones
 
 When cloning this repository on a new machine, you MUST run the following steps:
