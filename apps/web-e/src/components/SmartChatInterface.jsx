@@ -183,7 +183,7 @@ export function SmartChatInterface({ assistant }) {
       </div>
 
       {/* Input Area */}
-      <div className="border-t-4 border-dashed border-dark bg-white p-4">
+      <div className="border-t-4 border-dashed border-dark bg-white p-4 flex-shrink-0">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             value={input}

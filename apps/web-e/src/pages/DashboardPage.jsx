@@ -25,10 +25,10 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen handdrawn-bg flex">
+    <div className="h-screen handdrawn-bg flex overflow-hidden">
       {/* Sidebar */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 bg-white border-r-4 border-dashed border-dark overflow-hidden flex flex-col`}>
-        <div className="p-6 border-b-4 border-dashed border-dark">
+      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 bg-white border-r-4 border-dashed border-dark overflow-hidden flex flex-col h-full`}>
+        <div className="p-6 border-b-4 border-dashed border-dark flex-shrink-0 overflow-y-auto max-h-[50%]">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center">
               <div className="w-12 h-12 rounded-full bg-accent border-3 border-dark flex items-center justify-center mr-3">
@@ -105,7 +105,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Logout Button */}
-        <div className="p-6 border-t-4 border-dashed border-dark">
+        <div className="p-6 border-t-4 border-dashed border-dark flex-shrink-0">
           <button
             onClick={handleSignOut}
             className="w-full outsider-button py-3 flex items-center justify-center gap-2"
@@ -117,9 +117,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col h-full">
         {/* Top Bar */}
-        <div className="bg-white border-b-4 border-dashed border-dark p-4 flex items-center justify-between">
+        <div className="bg-white border-b-4 border-dashed border-dark p-4 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-4">
             {!sidebarOpen && (
               <button
