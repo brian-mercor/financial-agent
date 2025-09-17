@@ -6,7 +6,13 @@ venv
 .mermaid
 dist
 *.pyc
+# Environment files - NEVER commit these with real values
 .env*
+!.env.example
+!.env.production.example
+*.env
+deployment-output.json
+deployment-info.txt
 
 .turbo
 
