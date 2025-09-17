@@ -4,6 +4,8 @@ import Chart from 'chart.js/auto'
 
 export default function BrutalLandingPage() {
   useEffect(() => {
+    // Store chart instance for cleanup
+    let chartInstance = null;
     // Year
     document.getElementById('year').textContent = new Date().getFullYear()
 
@@ -150,7 +152,7 @@ export default function BrutalLandingPage() {
 
     // Main Chart
     const ctx = document.getElementById('chart')
-    new Chart(ctx, {
+    chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
@@ -205,6 +207,13 @@ export default function BrutalLandingPage() {
         }
       }
     })
+    
+    // Cleanup function to destroy chart on unmount
+    return () => {
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+    }
   }, [])
 
   return (
