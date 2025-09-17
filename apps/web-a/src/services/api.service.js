@@ -5,8 +5,7 @@ class ApiService {
 
   async sendMessage(message, assistantType = 'general', history = []) {
     try {
-      // Use the assistant endpoint which is available in the web app
-      const response = await fetch('/api/assistant', {
+      const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -21,6 +20,7 @@ class ApiService {
             timeframe: '1d',
             riskTolerance: 'moderate',
           },
+          stream: false
         }),
       });
 
