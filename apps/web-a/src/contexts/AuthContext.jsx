@@ -32,11 +32,12 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
-      return { error }
+      if (error) throw error;
+      return { error: null }
     } catch (error) {
       return { error }
     }
@@ -44,11 +45,12 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password) => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       })
-      return { error }
+      if (error) throw error;
+      return { error: null }
     } catch (error) {
       return { error }
     }
