@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
         throw error;
       }
       console.log('Sign in successful:', data)
-      return { error: null }
+      return { success: true, error: null }
     } catch (error) {
       console.error('Sign in error caught:', error.message, error)
       return { error }
@@ -56,7 +56,7 @@ export function AuthProvider({ children }) {
         password,
       })
       if (error) throw error;
-      return { error: null }
+      return { success: true, error: null }
     } catch (error) {
       return { error }
     }
