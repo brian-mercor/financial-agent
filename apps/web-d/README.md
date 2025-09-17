@@ -4,7 +4,7 @@ AI-powered financial intelligence platform with mystical tarot-inspired design.
 
 ## Features
 
-- **Real Supabase Authentication**: Secure user authentication with Supabase
+- **Authentication**: Local storage authentication (same as web-c, Supabase-ready)
 - **Real-time Chat Interface**: Connect to backend API for AI-powered financial analysis
 - **Multi-Agent System**: 5 specialized AI assistants (Market Analyst, Trading Advisor, Portfolio Manager, Risk Analyst, Economist)
 - **Streaming Responses**: Real-time streaming of AI responses
@@ -21,7 +21,7 @@ pnpm install
 
 ### 2. Configure Environment Variables
 
-Copy the example environment file and add your actual credentials:
+Copy the example environment file:
 
 ```bash
 cp .env.example .env
@@ -30,10 +30,6 @@ cp .env.example .env
 Edit `.env` with your actual values:
 
 ```env
-# Supabase Configuration (REQUIRED)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-
 # Backend API Configuration (REQUIRED)
 VITE_API_URL=http://localhost:3000/api
 ```
@@ -57,16 +53,22 @@ The app will run on http://localhost:5176
 
 ## Important Notes
 
-- **NO MOCK DATA**: This app uses real Supabase authentication and real API calls
+- **Authentication**: Uses localStorage like web-c (can be upgraded to Supabase)
 - **Backend Required**: The backend must be running for the chat to work
-- **Environment Variables**: All environment variables are required for the app to function
+- **Real API Calls**: Chat interface connects to real backend API
 
-## Authentication Flow
+## Authentication
 
-1. **Sign Up**: Creates a new Supabase user with email/password
-2. **Sign In**: Authenticates with Supabase
+Currently uses localStorage authentication (same as web-c):
+1. **Sign Up**: Creates a local user with email/password
+2. **Sign In**: Stores user in localStorage
 3. **Protected Routes**: Dashboard requires authentication
-4. **Session Management**: Automatic session refresh with Supabase
+4. **Session Management**: Persists across browser refreshes
+
+To enable Supabase authentication:
+1. Add `@supabase/supabase-js` to package.json
+2. Uncomment Supabase code in `AuthContext.jsx`
+3. Add Supabase credentials to `.env`
 
 ## API Integration
 

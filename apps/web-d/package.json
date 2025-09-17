@@ -17,8 +17,7 @@
     "react-markdown": "^9.0.3",
     "remark-gfm": "^4.0.0",
     "lucide-react": "^0.469.0",
-    "clsx": "^2.1.1",
-    "@supabase/supabase-js": "^2.39.3"
+    "clsx": "^2.1.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
