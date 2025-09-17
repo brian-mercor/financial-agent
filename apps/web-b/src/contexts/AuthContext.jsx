@@ -1,54 +1,75 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
 const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
+  const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Check for existing session
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const setData = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) console.error('Error getting session:', error)
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
     }
-    setLoading(false)
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
+
+    setData()
+
+    return () => {
+      listener?.subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email, password) => {
-    // MOCK AUTHENTICATION - Not connected to real backend
-    // TODO: Replace with actual Supabase authentication
     try {
-      const mockUser = {
-        id: Date.now().toString(),
-        email: email,
-        name: email.split('@')[0],
-        isMockData: true // Clearly indicate this is mock data
+      console.log('Attempting sign in with email:', email)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) {
+        console.error('Supabase auth error:', error.message, error)
+        throw error;
       }
-
-      localStorage.setItem('user', JSON.stringify(mockUser))
-      setUser(mockUser)
-      console.warn('MOCK AUTH: Using mock authentication - not connected to real backend')
-      return { success: true }
+      console.log('Sign in successful:', data)
+      return { success: true, error: null }
     } catch (error) {
+      console.error('Sign in error caught:', error.message, error)
       return { success: false, error: error.message }
     }
   }
 
   const signUp = async (email, password) => {
-    // MOCK SIGNUP - Not connected to real backend
-    // TODO: Replace with actual Supabase signup
-    return signIn(email, password)
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      if (error) throw error;
+      return { success: true, error: null }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
   }
 
-  const signOut = () => {
-    localStorage.removeItem('user')
-    setUser(null)
+  const signOut = async () => {
+    await supabase.auth.signOut()
   }
 
   return (
     <AuthContext.Provider value={{
       user,
+      session,
       loading,
       signIn,
       signUp,
