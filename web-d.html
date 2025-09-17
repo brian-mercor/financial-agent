@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>iChatbook — Domestic Divination Genius Bar for Any Book</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Cardo:wght@400;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root{
+      --gold: #FFD36E;
+      --gold-2: #F9C847;
+      --gold-3: #F2B807;
+      --deep-purple: #0C0616;
+      --violet-700: #5B2A86;
+      --violet-800: #4C1D95;
+      --ink: #120B1A;
+      --surface: rgba(22, 8, 36, 0.76);
+    }
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(1200px 600px at 10% 5%, rgba(96, 44, 144, .18), transparent 60%),
+                  radial-gradient(900px 700px at 90% 10%, rgba(30, 27, 75, .22), transparent 70%),
+                  radial-gradient(1000px 700px at 50% 100%, rgba(88, 28, 135, .30), rgba(3, 3, 12, 0.9));
+      color: #EDE7F6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Starfield */
+    .stars, .stars2, .stars3 {
+      position: fixed;
+      top: -50vh; left: 0; right:0; bottom:0;
+      width: 200%;
+      pointer-events: none;
+      opacity: 0.25;
+      background-repeat: repeat;
+      mix-blend-mode: screen;
+    }
+    .stars { background-image: radial-gradient(2px 2px at 20px 30px, #fff, rgba(255,255,255,0)), radial-gradient(1px 1px at 50px 80px, #fff, rgba(255,255,255,0)), radial-gradient(1.2px 1.2px at 120px 150px, #fff, rgba(255,255,255,0)); animation: drift 140s linear infinite; }
+    .stars2 { background-image: radial-gradient(1.5px 1.5px at 90px 40px, #fff, rgba(255,255,255,0)), radial-gradient(2px 2px at 160px 120px, #fff, rgba(255,255,255,0)); animation: drift 200s linear infinite reverse; opacity: .18;}
+    .stars3 { background-image: radial-gradient(1px 1px at 130px 70px, #fff, rgba(255,255,255,0)), radial-gradient(2px 2px at 220px 200px, #fff, rgba(255,255,255,0)); animation: drift 260s linear infinite; opacity: .12;}
+    @keyframes drift { from { transform: translateX(0); } to { transform: translateX(-50%);} }
+
+    /* Gold gradient text */
+    .gold-text {
+      background: linear-gradient(90deg, var(--gold), var(--gold-2) 40%, #fff9d6 50%, var(--gold-3) 60%, var(--gold) 100%);
+      background-size: 220% 100%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      animation: shimmer 8s ease-in-out infinite;
+    }
+    @keyframes shimmer { 0% { background-position: 0% 50% } 50% { background-position: 100% 50% } 100% { background-position: 0% 50% } }
+
+    /* Tarot panel ornate border */
+    .tarot-panel {
+      position: relative;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      backdrop-filter: blur(10px);
+      box-shadow:
+        0 30px 60px rgba(0,0,0,0.55),
+        inset 0 0 0 1px rgba(255, 211, 110, .18);
+    }
+    .tarot-panel::before, .tarot-panel::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: 22px;
+      pointer-events: none;
+    }
+    .tarot-panel::before {
+      background: conic-gradient(from 0deg, rgba(255, 213, 111, .4), rgba(255, 255, 255, .05), rgba(255, 213, 111, .35));
+      mask: linear-gradient(#0000, #000);
+      filter: blur(6px);
+      opacity: .5;
+      animation: rotateGlow 16s linear infinite;
+    }
+    @keyframes rotateGlow { to { transform: rotate(360deg); } }
+    .corner {
+      position: absolute; width: 26px; height: 26px; border: 1.5px solid rgba(255, 211, 110, .75);
+    }
+    .corner.tl { top: 10px; left: 10px; border-right: none; border-bottom: none; border-radius: 14px 0 0 0; }
+    .corner.tr { top: 10px; right: 10px; border-left: none; border-bottom: none; border-radius: 0 14px 0 0; }
+    .corner.bl { bottom: 10px; left: 10px; border-right: none; border-top: none; border-radius: 0 0 0 14px; }
+    .corner.br { bottom: 10px; right: 10px; border-left: none; border-top: none; border-radius: 0 0 14px 0; }
+
+    /* Guide card */
+    .guide-card {
+      transition: transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s, border-color .35s, background-color .35s;
+      background: linear-gradient(180deg, rgba(107, 33, 168, .16), rgba(0,0,0,.12));
+      border: 1.2px solid rgba(255, 211, 110, .24);
+      border-radius: 16px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .guide-card:hover { transform: translateY(-4px) rotateX(2deg) rotateY(-2deg); box-shadow: 0 18px 40px rgba(0,0,0,0.5); }
+    .guide-card.active { border-color: rgba(255, 211, 110, .9); box-shadow: 0 20px 44px rgba(255, 211, 110, 0.18), 0 14px 34px rgba(0,0,0,0.5); }
+
+    /* Button */
+    .btn-gold {
+      background: linear-gradient(180deg, #FBDD96, #F2B807);
+      color: #341A00;
+      box-shadow: 0 10px 24px rgba(251, 221, 150, .22), inset 0 1px 0 rgba(255,255,255,.6);
+      transition: transform .2s, box-shadow .2s, filter .2s;
+    }
+    .btn-gold:hover { transform: translateY(-1px); box-shadow: 0 20px 32px rgba(251, 221, 150, .28), inset 0 1px 0 rgba(255,255,255,.9); filter: saturate(1.05); }
+    .btn-gold:active { transform: translateY(0); box-shadow: 0 8px 20px rgba(251,221,150,.25); }
+    .btn-ghost {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255, 211, 110, .28);
+      color: #FFE9B3;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.12); }
+
+    /* Spinner */
+    .spinner {
+      width: 18px; height: 18px; border-radius: 9999px;
+      border: 2px solid rgba(0,0,0,0);
+      border-top-color: #5C2E8E;
+      border-right-color: rgba(255, 211, 110, .95);
+      animation: spin 900ms linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .stars, .stars2, .stars3, .tarot-panel::before, .gold-text { animation: none !important; }
+    }
+
+    /* Form inputs */
+    .input {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 12px;
+      transition: border-color .2s, box-shadow .2s, background-color .2s;
+    }
+    .input:focus { outline: none; border-color: rgba(255, 211, 110, .6); box-shadow: 0 0 0 4px rgba(255, 211, 110, .14); background: rgba(255,255,255,0.06); }
+
+    /* Tooltip */
+    .tooltip {
+      position: relative;
+    }
+    .tooltip:hover .tooltip-panel {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .tooltip-panel {
+      position: absolute; left: 50%; transform: translate(-50%, -6px); top: -44px;
+      background: rgba(25, 13, 37, .96); color: #FFEFBF;
+      border: 1px solid rgba(255, 211, 110, .35);
+      padding: 6px 10px; border-radius: 8px;
+      font-size: 12px; white-space: nowrap;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+      opacity: 0; transition: .2s; pointer-events: none;
+    }
+
+    /* Mobile deck drawer */
+    .drawer {
+      transition: max-height .45s cubic-bezier(.2,.8,.2,1), opacity .25s;
+      overflow: hidden;
+    }
+
+    /* Selection chips */
+    .chip {
+      border: 1px solid rgba(255, 211, 110, .22);
+      background: rgba(255,255,255,.06);
+      color: #FCEBB3;
+      transition: .2s;
+    }
+    .chip:hover { background: rgba(255,255,255,.12); border-color: rgba(255, 211, 110, .5);}
+  </style>
+</head>
+<body class="min-h-screen font-[Inter]">
+  <!-- Starfield layers -->
+  <div aria-hidden="true" class="stars"></div>
+  <div aria-hidden="true" class="stars2"></div>
+  <div aria-hidden="true" class="stars3"></div>
+
+  <header class="max-w-7xl mx-auto px-4 sm:px-6 pt-8 md:pt-12">
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <!-- Logo icon: mystic washer -->
+        <div class="relative w-10 h-10 rounded-xl" aria-hidden="true"
+             style="background: linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.04)); box-shadow: inset 0 0 0 1px rgba(255, 211, 110, .4), 0 8px 20px rgba(0,0,0,.45);">
+          <svg viewBox="0 0 64 64" class="absolute inset-0 w-full h-full p-1.5">
+            <defs>
+              <linearGradient id="g1" x1="0" x2="1">
+                <stop offset="0" stop-color="#FBDD96"/>
+                <stop offset="1" stop-color="#F2B807"/>
+              </linearGradient>
+            </defs>
+            <rect x="7" y="7" width="50" height="50" rx="10" fill="url(#g1)" opacity=".25" />
+            <rect x="9" y="9" width="46" height="46" rx="9" fill="none" stroke="url(#g1)" stroke-width="1.5" opacity=".85"/>
+            <circle cx="32" cy="34" r="13.5" fill="none" stroke="#FDE8A6" stroke-width="1.6"/>
+            <circle cx="32" cy="34" r="8.2" fill="none" stroke="#8B5CF6" stroke-width="2"/>
+            <circle cx="20" cy="17.5" r="2.2" fill="#FDEAB9"/>
+            <circle cx="28" cy="17.5" r="2.2" fill="#E9D5FF"/>
+            <circle cx="36" cy="17.5" r="2.2" fill="#DDD6FE"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-2xl sm:text-3xl tracking-tight font-extrabold gold-text">iChatbook</div>
+          <p class="text-xs sm:text-sm text-purple-100/80">Your Personal "Genius Bar" for Any Book</p>
+        </div>
+      </div>
+
+      <div class="hidden md:flex items-center gap-2 text-[13px] text-purple-100/70">
+        <span class="chip rounded-full px-3 py-1">Expert help</span>
+        <span class="chip rounded-full px-3 py-1">Instant answers</span>
+        <span class="chip rounded-full px-3 py-1">Simple AI</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 pb-24 pt-6">
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+      <!-- Left: Guides deck -->
+      <aside class="lg:col-span-4">
+        <div class="tarot-panel p-4 sm:p-5 relative">
+          <span aria-hidden="true" class="corner tl"></span>
+          <span aria-hidden="true" class="corner tr"></span>
+          <span aria-hidden="true" class="corner bl"></span>
+          <span aria-hidden="true" class="corner br"></span>
+
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg sm:text-xl font-semibold">Choose Your Guide</h2>
+            <button id="toggleGuides" class="lg:hidden btn-ghost rounded-lg px-3 py-2 text-sm flex items-center gap-2" aria-expanded="false" aria-controls="guideDrawer">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="#FDE7A9" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+              Deck
+            </button>
+          </div>
+          <p class="text-purple-100/70 text-sm mt-1">Pick a card. Your helper’s vibe shapes the answer tone.</p>
+
+          <div id="guideDrawer" class="drawer lg:max-h-[999px] max-h-0 lg:mt-4 opacity-0 lg:opacity-100">
+            <div class="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-3" role="radiogroup" aria-label="Guides">
+              <!-- Guide cards -->
+              <button class="guide-card group p-3 text-left focus:outline-none focus:ring-2 focus:ring-yellow-300/40" role="radio" aria-checked="true" data-guide="washer" id="g-washer">
+                <div class="flex items-center gap-3">
+                  <div class="relative w-12 h-16 rounded-md overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-purple-700/40 to-purple-900/70"></div>
+                    <svg viewBox="0 0 64 96" class="absolute inset-0 w-full h-full">
+                      <defs><linearGradient id="cardG" x1="0" x2="1"><stop offset="0" stop-color="#FBDD96"/><stop offset="1" stop-color="#F2B807"/></linearGradient></defs>
+                      <rect x="6" y="6" width="52" height="84" rx="10" fill="url(#cardG)" opacity=".1"/>
+                      <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="url(#cardG)" stroke-width="1.4" opacity=".7"/>
+                      <circle cx="32" cy="52" r="12" fill="none" stroke="#E9D5FF" stroke-width="2"/>
+                      <circle cx="32" cy="52" r="7" fill="none" stroke="#A78BFA" stroke-width="2"/>
+                      <circle cx="22" cy="20" r="3" fill="#FFEFBF"/>
+                      <circle cx="32" cy="20" r="3" fill="#F8F7FF"/>
+                      <circle cx="42" cy="20" r="3" fill="#EDE9FE"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold">The Washer</div>
+                    <div class="text-xs text-purple-100/70">Clarifies & removes confusion</div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[11px] text-purple-100/70">Major Arcana • XII</div>
+              </button>
+
+              <button class="guide-card group p-3 text-left focus:outline-none focus:ring-2 focus:ring-yellow-300/40" role="radio" aria-checked="false" data-guide="dishwasher" id="g-dishwasher">
+                <div class="flex items-center gap-3">
+                  <div class="relative w-12 h-16 rounded-md overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-purple-700/40 to-purple-900/70"></div>
+                    <svg viewBox="0 0 64 96" class="absolute inset-0 w-full h-full">
+                      <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".7"/>
+                      <rect x="16" y="46" width="32" height="24" rx="4" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+                      <circle cx="24" cy="24" r="2.4" fill="#FFF0BF"/>
+                      <circle cx="32" cy="24" r="2.4" fill="#F8F7FF"/>
+                      <circle cx="40" cy="24" r="2.4" fill="#EDE9FE"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold">The Purifier</div>
+                    <div class="text-xs text-purple-100/70">Rinses away noise</div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[11px] text-purple-100/70">Major Arcana • VIII</div>
+              </button>
+
+              <button class="guide-card group p-3 text-left focus:outline-none focus:ring-2 focus:ring-yellow-300/40" role="radio" aria-checked="false" data-guide="vacuum" id="g-vacuum">
+                <div class="flex items-center gap-3">
+                  <div class="relative w-12 h-16 rounded-md overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-purple-700/40 to-purple-900/70"></div>
+                    <svg viewBox="0 0 64 96" class="absolute inset-0 w-full h-full">
+                      <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".7"/>
+                      <path d="M26 60c0-8 4-18 6-24 2-7 12-7 12 0v28" stroke="#C4B5FD" stroke-width="2.2" fill="none" />
+                      <circle cx="38" cy="73" r="5" fill="none" stroke="#E9D5FF" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold">The Void</div>
+                    <div class="text-xs text-purple-100/70">Pulls out the core ideas</div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[11px] text-purple-100/70">Major Arcana • XV</div>
+              </button>
+
+              <button class="guide-card group p-3 text-left focus:outline-none focus:ring-2 focus:ring-yellow-300/40" role="radio" aria-checked="false" data-guide="iron" id="g-iron">
+                <div class="flex items-center gap-3">
+                  <div class="relative w-12 h-16 rounded-md overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-purple-700/40 to-purple-900/70"></div>
+                    <svg viewBox="0 0 64 96" class="absolute inset-0 w-full h-full">
+                      <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".7"/>
+                      <path d="M16 62c8-12 18-18 36-18v18c0 3-3 6-6 6H22c-3 0-6-3-6-6z" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+                      <path d="M22 50h16" stroke="#E9D5FF" stroke-width="2"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold">The Temperer</div>
+                    <div class="text-xs text-purple-100/70">Straightens the plot</div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[11px] text-purple-100/70">Major Arcana • IV</div>
+              </button>
+
+              <button class="guide-card group p-3 text-left focus:outline-none focus:ring-2 focus:ring-yellow-300/40" role="radio" aria-checked="false" data-guide="fridge" id="g-fridge">
+                <div class="flex items-center gap-3">
+                  <div class="relative w-12 h-16 rounded-md overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-b from-purple-700/40 to-purple-900/70"></div>
+                    <svg viewBox="0 0 64 96" class="absolute inset-0 w-full h-full">
+                      <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".7"/>
+                      <rect x="20" y="20" width="24" height="52" rx="4" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+                      <circle cx="41" cy="46" r="1.6" fill="#F2B807"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div class="text-sm font-semibold">The Preserver</div>
+                    <div class="text-xs text-purple-100/70">Keeps key facts fresh</div>
+                  </div>
+                </div>
+                <div class="mt-3 text-[11px] text-purple-100/70">Major Arcana • XIX</div>
+              </button>
+            </div>
+
+            <div class="mt-4 flex items-center gap-2 text-xs text-purple-100/70">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 opacity-80" viewBox="0 0 20 20" fill="#F2B807"><path d="M10 .5a1 1 0 0 1 .894.553l2.381 4.762 5.258.764a1 1 0 0 1 .554 1.704l-3.8 3.702.897 5.231a1 1 0 0 1-1.451 1.054L10 15.347l-4.683 2.463a1 1 0 0 1-1.451-1.054l.897-5.231-3.8-3.702a1 1 0 0 1 .554-1.704l5.258-.764L9.106 1.053A1 1 0 0 1 10 .5z"/></svg>
+              Pro tip: The Washer is perfect for quick, clear explanations.
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Right: Console -->
+      <section class="lg:col-span-8">
+        <div class="tarot-panel p-5 sm:p-6 lg:p-7 relative">
+          <span aria-hidden="true" class="corner tl"></span>
+          <span aria-hidden="true" class="corner tr"></span>
+          <span aria-hidden="true" class="corner bl"></span>
+          <span aria-hidden="true" class="corner br"></span>
+
+          <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <h1 class="text-xl sm:text-2xl font-bold">Ask any book like a Genius Bar visit—without the appointment</h1>
+              <p class="text-sm text-purple-100/80 mt-1">Type a title and a question. iChatbook gives friendly, expert help instantly.</p>
+            </div>
+            <div class="tooltip">
+              <button class="btn-ghost rounded-lg px-3 py-2 flex items-center gap-2 text-sm" id="demoBtn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="#FFE9B3"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 14.93a8.001 8.001 0 0 0 5.657-11.314L13 11v5.93ZM11 13H7.07A8 8 0 0 0 17 6.343L11 13Z"/></svg>
+                Try a demo
+              </button>
+              <div class="tooltip-panel">Loads a quick example</div>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <form id="askForm" class="mt-5 space-y-4" aria-describedby="formHelp" novalidate>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div class="md:col-span-1">
+                <label for="bookTitle" class="block text-xs font-medium text-purple-100/80 mb-1">Book title</label>
+                <div class="relative">
+                  <input id="bookTitle" name="bookTitle" class="input w-full px-3 py-3 pr-10 text-sm placeholder-purple-100/50" placeholder="e.g., Pride and Prejudice" aria-required="true" />
+                  <div class="absolute right-2 top-1/2 -translate-y-1/2 text-purple-100/60">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 4H5a2 2 0 0 0-2 2v11.586A1.414 1.414 0 0 0 4.414 19L7 16.414A2 2 0 0 1 8.414 16H19a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2Z"/></svg>
+                  </div>
+                </div>
+              </div>
+
+              <div class="md:col-span-2">
+                <label for="question" class="block text-xs font-medium text-purple-100/80 mb-1">Your question</label>
+                <div class="relative">
+                  <textarea id="question" name="question" rows="2" class="input w-full px-3 py-3 text-sm pr-[98px] placeholder-purple-100/50" placeholder="Ask anything about the book’s plot, themes, quotes, or characters…" aria-required="true"></textarea>
+                  <div class="absolute right-2 bottom-2 flex items-center gap-2">
+                    <button type="button" id="clearBtn" class="btn-ghost rounded-md px-2.5 py-2 text-xs" aria-label="Clear question">Clear</button>
+                    <button type="submit" id="askBtn" class="btn-gold rounded-md px-3 py-2 text-sm flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed" disabled>
+                      <span>Ask now</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="#3b2000"><path d="M12 3l8 8-8 8-1.41-1.41L16.17 12 10.59 6.41 12 5l-8 8"/></svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p id="formHelp" class="text-xs text-purple-100/70">Short and sweet works best. You can paste a passage, too.</p>
+
+            <!-- Suggestions -->
+            <div class="flex flex-wrap gap-2 mt-2">
+              <button type="button" class="chip rounded-full px-3 py-1.5 text-xs suggestion" data-question="What are the main themes and why do they matter today?">Themes</button>
+              <button type="button" class="chip rounded-full px-3 py-1.5 text-xs suggestion" data-question="Give me a plain-English summary in 5 bullet points.">5‑point summary</button>
+              <button type="button" class="chip rounded-full px-3 py-1.5 text-xs suggestion" data-question="Find a key quote and explain its meaning.">Key quote</button>
+              <button type="button" class="chip rounded-full px-3 py-1.5 text-xs suggestion" data-question="Compare two characters and how they change.">Character compare</button>
+            </div>
+          </form>
+
+          <!-- Results -->
+          <section class="mt-6" aria-live="polite" aria-atomic="true">
+            <!-- Loading state -->
+            <div id="loading" class="hidden">
+              <div class="flex items-center gap-3 text-purple-100">
+                <div class="spinner"></div>
+                <div>
+                  <div class="font-medium">Consulting <span id="loadingGuide">The Washer</span>…</div>
+                  <div class="text-xs text-purple-100/80">Spinning up instant expertise</div>
+                </div>
+              </div>
+              <div class="mt-4 h-24 rounded-xl bg-gradient-to-r from-purple-900/40 via-purple-700/20 to-purple-900/40 animate-pulse"></div>
+            </div>
+
+            <!-- Answer card -->
+            <div id="answerWrap" class="hidden">
+              <article class="relative overflow-hidden rounded-2xl border border-yellow-200/25 bg-gradient-to-b from-white/5 to-white/0 p-4 sm:p-5">
+                <div class="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-yellow-200/60 to-transparent"></div>
+                <div class="flex items-start justify-between gap-3">
+                  <div class="flex items-start gap-3">
+                    <div class="w-10 h-12 rounded-md bg-gradient-to-b from-yellow-100/20 to-yellow-300/10 border border-yellow-200/50 flex items-center justify-center">
+                      <svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+                        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+                        <circle cx="32" cy="52" r="12" fill="none" stroke="#A78BFA" stroke-width="2"/>
+                        <circle cx="32" cy="52" r="7" fill="none" stroke="#E9D5FF" stroke-width="2"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 class="text-base sm:text-lg font-semibold"><span id="answerTitle">The Washer’s Reading</span></h3>
+                      <p class="text-xs text-purple-100/75">Book: <span id="answerBook">—</span></p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <button id="copyBtn" class="btn-ghost rounded-md px-2.5 py-2 text-xs flex items-center gap-1.5" aria-label="Copy answer">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="#FFE9B3"><path d="M8 8V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2h-2v-1h2a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-7a1 1 0 0 0-1 1v2H8z"/><path d="M6 8h7a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2zm0 1a1 1 0 0 0-1 1v7a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1H6z"/></svg>
+                      Copy
+                    </button>
+                    <button id="regenBtn" class="btn-ghost rounded-md px-2.5 py-2 text-xs flex items-center gap-1.5">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="w-[15px] h-[15px]" viewBox="0 0 24 24" fill="#FFE9B3"><path d="M4 4v6h6l-2.3-2.3A6 6 0 1 1 6 18l-1.4 1.4A8 8 0 1 0 9.7 6.3L7.4 4H4z"/></svg>
+                      Regenerate
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mt-4 space-y-3 text-[15px]" id="answerText">
+                  <!-- Filled by JS -->
+                </div>
+
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div class="rounded-lg border border-yellow-200/20 bg-white/5 p-3">
+                    <div class="text-xs text-purple-100/70">Tone</div>
+                    <div id="answerTone" class="text-sm font-medium">Clear and friendly</div>
+                  </div>
+                  <div class="rounded-lg border border-yellow-200/20 bg-white/5 p-3">
+                    <div class="text-xs text-purple-100/70">Confidence</div>
+                    <div class="mt-1 w-full h-2 rounded-full bg-white/10">
+                      <div id="confidenceBar" class="h-2 rounded-full bg-gradient-to-r from-yellow-300 to-yellow-500" style="width: 82%"></div>
+                    </div>
+                  </div>
+                  <div class="rounded-lg border border-yellow-200/20 bg-white/5 p-3">
+                    <div class="text-xs text-purple-100/70">Guide</div>
+                    <div id="answerGuide" class="text-sm font-medium">The Washer</div>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <button id="sourceBtn" class="chip rounded-full px-3 py-1.5 text-xs">Explain this reading</button>
+                  <button id="askFollow" class="chip rounded-full px-3 py-1.5 text-xs">Ask a follow‑up</button>
+                </div>
+
+                <div id="sourcesPanel" class="hidden mt-3 rounded-lg border border-yellow-200/20 bg-white/5 p-3 text-sm text-purple-100/85">
+                  <div class="flex items-center gap-2 mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="#F2B807"><path d="M12 2 1 21h22L12 2zm0 4.84 6.93 12.16H5.07L12 6.84zM11 10h2v4h-2v-4zm0 6h2v2h-2v-2z"/></svg>
+                    Tarot Spread • Past / Present / Future
+                  </div>
+                  <ul class="list-disc ml-5 space-y-1">
+                    <li>Past (Preset Cycle): Previous chapters set up the stakes and social norms.</li>
+                    <li>Present (Quick Wash): We focused on your exact question and filtered the noise.</li>
+                    <li>Future (Final Spin): Practical takeaway you can use in class or discussion.</li>
+                  </ul>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 pb-10">
+    <div class="tarot-panel p-4 sm:p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="text-sm text-purple-100/80">
+          Occult meets Whirlpool: purple velvet, golden borders, and answers that actually help.
+        </div>
+        <div class="flex items-center gap-2 text-xs text-purple-100/70">
+          <span class="chip rounded-full px-3 py-1">User‑friendly</span>
+          <span class="chip rounded-full px-3 py-1">Accessible</span>
+          <span class="chip rounded-full px-3 py-1">No jargon</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // State
+    const state = {
+      guide: 'washer',
+      guideMap: {
+        washer: { name: 'The Washer', tone: 'Clear and friendly', conf: 0.86, icon: washerIcon() },
+        dishwasher: { name: 'The Purifier', tone: 'Crisp and structured', conf: 0.83, icon: dishwasherIcon() },
+        vacuum: { name: 'The Void', tone: 'Focused and concise', conf: 0.81, icon: vacuumIcon() },
+        iron: { name: 'The Temperer', tone: 'Orderly and balanced', conf: 0.84, icon: ironIcon() },
+        fridge: { name: 'The Preserver', tone: 'Calm and factual', conf: 0.82, icon: fridgeIcon() },
+      },
+      loading: false,
+      lastAnswer: ''
+    };
+
+    // Elements
+    const guides = Array.from(document.querySelectorAll('.guide-card'));
+    const toggleGuidesBtn = document.getElementById('toggleGuides');
+    const guideDrawer = document.getElementById('guideDrawer');
+
+    const bookTitle = document.getElementById('bookTitle');
+    const question = document.getElementById('question');
+    const askBtn = document.getElementById('askBtn');
+    const askForm = document.getElementById('askForm');
+    const clearBtn = document.getElementById('clearBtn');
+    const demoBtn = document.getElementById('demoBtn');
+
+    const loadingEl = document.getElementById('loading');
+    const loadingGuide = document.getElementById('loadingGuide');
+
+    const answerWrap = document.getElementById('answerWrap');
+    const answerText = document.getElementById('answerText');
+    const answerTone = document.getElementById('answerTone');
+    const answerGuide = document.getElementById('answerGuide');
+    const answerBook = document.getElementById('answerBook');
+    const answerTitle = document.getElementById('answerTitle');
+    const answerIcon = document.getElementById('answerIcon');
+    const confidenceBar = document.getElementById('confidenceBar');
+
+    const copyBtn = document.getElementById('copyBtn');
+    const regenBtn = document.getElementById('regenBtn');
+    const sourceBtn = document.getElementById('sourceBtn');
+    const sourcesPanel = document.getElementById('sourcesPanel');
+    const askFollow = document.getElementById('askFollow');
+
+    // Utility: sanitize
+    const escapeHTML = (str) => str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+
+    // Toggle mobile drawer
+    toggleGuidesBtn?.addEventListener('click', () => {
+      const expanded = toggleGuidesBtn.getAttribute('aria-expanded') === 'true';
+      toggleGuidesBtn.setAttribute('aria-expanded', String(!expanded));
+      if (expanded) {
+        guideDrawer.style.maxHeight = '0px';
+        guideDrawer.style.opacity = '0';
+      } else {
+        guideDrawer.style.maxHeight = guideDrawer.scrollHeight + 'px';
+        guideDrawer.style.opacity = '1';
+      }
+    });
+
+    // Guide selection
+    function setGuide(id){
+      state.guide = id;
+      guides.forEach(btn => {
+        const active = btn.dataset.guide === id;
+        btn.classList.toggle('active', active);
+        btn.setAttribute('aria-checked', String(active));
+      });
+      loadingGuide.textContent = state.guideMap[id].name;
+    }
+    guides.forEach(btn => {
+      btn.addEventListener('click', () => setGuide(btn.dataset.guide));
+      btn.addEventListener('keydown', (e) => {
+        if (['Enter',' '].includes(e.key)) { e.preventDefault(); setGuide(btn.dataset.guide); }
+      });
+    });
+    setGuide('washer');
+
+    // Validation
+    function updateAskEnabled(){
+      const enable = bookTitle.value.trim().length > 0 && question.value.trim().length > 0 && !state.loading;
+      askBtn.disabled = !enable;
+    }
+    bookTitle.addEventListener('input', updateAskEnabled);
+    question.addEventListener('input', updateAskEnabled);
+
+    clearBtn.addEventListener('click', () => {
+      question.value = '';
+      updateAskEnabled();
+      question.focus();
+    });
+
+    // Suggestions
+    document.querySelectorAll('.suggestion').forEach(chip => {
+      chip.addEventListener('click', () => {
+        question.value = chip.dataset.question;
+        updateAskEnabled();
+        question.focus();
+      });
+    });
+
+    // Demo
+    demoBtn.addEventListener('click', () => {
+      bookTitle.value = 'Pride and Prejudice';
+      question.value = 'What are the main themes and why do they matter today?';
+      updateAskEnabled();
+      if (window.innerWidth < 1024 && toggleGuidesBtn.getAttribute('aria-expanded') === 'true') {
+        toggleGuidesBtn.click();
+      }
+    });
+
+    // Ask handler
+    askForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (askBtn.disabled) return;
+
+      state.loading = true;
+      updateAskEnabled();
+      loadingEl.classList.remove('hidden');
+      answerWrap.classList.add('hidden');
+
+      const guide = state.guideMap[state.guide];
+      loadingGuide.textContent = guide.name;
+
+      // fake "inference"
+      setTimeout(() => {
+        const b = escapeHTML(bookTitle.value.trim());
+        const q = escapeHTML(question.value.trim());
+        renderAnswer({ book:b, question:q, guide });
+        state.loading = false;
+        loadingEl.classList.add('hidden');
+        answerWrap.classList.remove('hidden');
+        updateAskEnabled();
+      }, 1200 + Math.random()*700);
+    });
+
+    // Render answer
+    function renderAnswer({ book, question, guide }){
+      const takeaways = generateTakeaways(book);
+      const quote = generateQuote(book);
+      const friendly = guide.tone;
+
+      answerBook.textContent = book || 'Unknown';
+      answerGuide.textContent = guide.name;
+      answerTone.textContent = friendly;
+      confidenceBar.style.width = Math.round(guide.conf * 100) + '%';
+      answerTitle.textContent = `${guide.name}'s Reading`;
+      answerIcon.outerHTML = guide.icon;
+
+      const intro = `<p>Here’s a clear, no‑jargon answer to your question about <strong>${book}</strong>:</p>`;
+      const core = `<div class="mt-2 rounded-lg border border-yellow-200/20 bg-white/5 p-3"><div class="text-sm leading-6">${smartAnswer(book, question, guide.name)}</div></div>`;
+      const ul = `<ul class="mt-3 list-disc ml-5 space-y-1">${takeaways.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+      const qt = `<figure class="mt-3 rounded-md border border-yellow-200/20 bg-white/5 p-3">
+        <blockquote class="text-sm italic text-purple-100/90">“${quote.text}”</blockquote>
+        <figcaption class="mt-1 text-xs text-purple-100/70">${quote.attribution}</figcaption>
+      </figure>`;
+      answerText.innerHTML = intro + core + ul + qt;
+
+      state.lastAnswer = answerText.innerText.trim();
+    }
+
+    // Copy
+    copyBtn.addEventListener('click', async () => {
+      try {
+        const text = state.lastAnswer || answerText.innerText.trim();
+        await navigator.clipboard.writeText(text);
+        flash(copyBtn, 'Copied!');
+      } catch {
+        flash(copyBtn, 'Press Ctrl/Cmd+C');
+      }
+    });
+
+    // Regenerate
+    regenBtn.addEventListener('click', () => {
+      if (!answerWrap.classList.contains('hidden')) {
+        const guide = state.guideMap[state.guide];
+        renderAnswer({ book: escapeHTML(bookTitle.value.trim()), question: escapeHTML(question.value.trim()), guide });
+        flash(regenBtn, 'Refreshed');
+      }
+    });
+
+    // Explain toggle
+    sourceBtn.addEventListener('click', () => {
+      const isHidden = sourcesPanel.classList.contains('hidden');
+      sourcesPanel.classList.toggle('hidden', !isHidden);
+      sourceBtn.textContent = isHidden ? 'Hide explanation' : 'Explain this reading';
+    });
+
+    // Ask a follow-up
+    askFollow.addEventListener('click', () => {
+      const follow = 'Can you give a short example to illustrate that?';
+      question.value = follow;
+      question.focus();
+      question.setSelectionRange(follow.length, follow.length);
+      updateAskEnabled();
+      smoothScrollTo(askForm);
+    });
+
+    // Helper UI functions
+    function flash(btn, label){
+      const prev = btn.textContent;
+      const prevHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span>${label}</span>`;
+      setTimeout(()=>{ btn.disabled = false; btn.innerHTML = prevHTML; }, 1100);
+    }
+    function smoothScrollTo(el){
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    // Content generators
+    function generateTakeaways(book){
+      const bits = [
+        `Core theme clarified in plain English`,
+        `One sentence on why it matters now`,
+        `Quick connection to a modern context`,
+        `A practical discussion prompt`,
+        `A note on tone and perspective`
+      ];
+      // Shuffle lightly
+      for (let i = bits.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1)); [bits[i], bits[j]] = [bits[j], bits[i]];
+      }
+      // Tailor first one to book
+      bits[0] = `${book} in one line: a clean take you can repeat`;
+      return bits.slice(0,3);
+    }
+    function generateQuote(book){
+      const samples = [
+        { text: 'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.', attribution: `${book} — opening line` },
+        { text: 'All we have to decide is what to do with the time that is given us.', attribution: `${book} — reflective passage` },
+        { text: 'Real courage is when you know you’re licked before you begin, but you begin anyway and see it through.', attribution: `${book} — on resilience` }
+      ];
+      return samples[Math.floor(Math.random()*samples.length)];
+    }
+    function smartAnswer(book, question, guideName){
+      const cleanQ = question.replace(/\s+/g, ' ').trim();
+      const tones = {
+        'The Washer': 'Think of a quick, gentle rinse that makes the pattern obvious.',
+        'The Purifier': 'We separate the clean facts from the residue and plate them clearly.',
+        'The Void': 'We remove the fluff so only the core remains.',
+        'The Temperer': 'We smooth wrinkles to reveal structure.',
+        'The Preserver': 'We keep the essentials crisp and cool.'
+      };
+      const angle = tones[guideName] || 'Here’s the clearest route to your answer.';
+      return `${angle} For ${book}, your question — “${cleanQ}” — points to a few essentials: clarity about the book’s purpose, how the author builds meaning, and why it still resonates. Below you’ll find a short list you can use in class, notes, or conversation.`;
+    }
+
+    // Icons per guide
+    function washerIcon(){
+      return `<svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+        <circle cx="32" cy="52" r="12" fill="none" stroke="#A78BFA" stroke-width="2"/>
+        <circle cx="32" cy="52" r="7" fill="none" stroke="#E9D5FF" stroke-width="2"/>
+      </svg>`;
+    }
+    function dishwasherIcon(){
+      return `<svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+        <rect x="16" y="46" width="32" height="24" rx="4" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+      </svg>`;
+    }
+    function vacuumIcon(){
+      return `<svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+        <path d="M26 60c0-8 4-18 6-24 2-7 12-7 12 0v28" stroke="#C4B5FD" stroke-width="2.2" fill="none" />
+        <circle cx="38" cy="73" r="5" fill="none" stroke="#E9D5FF" stroke-width="2"/>
+      </svg>`;
+    }
+    function ironIcon(){
+      return `<svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+        <path d="M16 62c8-12 18-18 36-18v18c0 3-3 6-6 6H22c-3 0-6-3-6-6z" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+        <path d="M22 50h16" stroke="#E9D5FF" stroke-width="2"/>
+      </svg>`;
+    }
+    function fridgeIcon(){
+      return `<svg id="answerIcon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 96" class="w-7 h-9">
+        <rect x="8" y="8" width="48" height="80" rx="9" fill="none" stroke="#F2B807" stroke-width="1.4" opacity=".9"/>
+        <rect x="20" y="20" width="24" height="52" rx="4" fill="none" stroke="#C4B5FD" stroke-width="2"/>
+        <circle cx="41" cy="46" r="1.6" fill="#F2B807"/>
+      </svg>`;
+    }
+
+    // Keyboard: focus management for accessibility
+    // Tab to submit with Enter in textarea: Cmd/Ctrl+Enter
+    question.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        askBtn.click();
+      }
+    });
+
+    // Initialize form state
+    updateAskEnabled();
+
+    // Resize drawer max-height when content resizes
+    const ro = new ResizeObserver(() => {
+      if (guideDrawer && toggleGuidesBtn.getAttribute('aria-expanded') === 'true') {
+        guideDrawer.style.maxHeight = guideDrawer.scrollHeight + 'px';
+      }
+    });
+    ro.observe(guideDrawer);
+
+    // Accessibility: announce changes
+    const polite = document.querySelector('[aria-live="polite"]');
+    const announce = (msg) => {
+      const div = document.createElement('div');
+      div.className = 'sr-only';
+      div.textContent = msg;
+      polite.appendChild(div);
+      setTimeout(()=>div.remove(), 1000);
+    };
+
+    // When rendering answer, also announce
+    const originalRender = renderAnswer;
+    renderAnswer = function(payload) {
+      originalRender(payload);
+      announce('Answer ready');
+    };
+  </script>
+</body>
+</html>
