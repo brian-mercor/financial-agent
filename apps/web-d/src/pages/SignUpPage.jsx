@@ -44,9 +44,11 @@ function SignUpPage() {
       const result = await signUp(formData.name, formData.email, formData.password)
       if (result.success) {
         navigate('/dashboard')
+      } else {
+        setError(result.error || 'Failed to create account. Please try again.')
       }
     } catch (err) {
-      setError('Failed to create account. Please try again.')
+      setError(err.message || 'Failed to create account. Please try again.')
     } finally {
       setLoading(false)
     }

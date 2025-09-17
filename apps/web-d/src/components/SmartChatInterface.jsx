@@ -2,8 +2,10 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { apiService } from '../services/api.service'
+import { useAuth } from '../contexts/AuthContext'
 
 function SmartChatInterface({ assistant }) {
+  const { user } = useAuth()
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -32,7 +34,7 @@ function SmartChatInterface({ assistant }) {
       id: Date.now().toString(),
       role: 'user',
       content: messageText,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -44,115 +46,111 @@ function SmartChatInterface({ assistant }) {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: '',
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         guide: assistant.name,
       }
 
       setMessages(prev => [...prev, assistantMessage])
 
-      // Simulate streaming response
-      const mockResponse = generateMockResponse(messageText, assistant)
-      const words = mockResponse.split(' ')
+      // Build conversation history for context
+      const history = messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
 
-      for (let i = 0; i < words.length; i++) {
-        await new Promise(resolve => setTimeout(resolve, 50))
-        setMessages(prev => {
-          const newMessages = [...prev]
-          const lastMessage = newMessages[newMessages.length - 1]
-          lastMessage.content = words.slice(0, i + 1).join(' ')
-          return newMessages
-        })
-      }
+      // Use real API streaming
+      await apiService.streamMessage(
+        messageText,
+        assistant.id,
+        {
+          userId: user?.id || `user-${Date.now()}`,
+          history,
+          context: {
+            symbols: extractSymbols(messageText),
+            timeframe: '1d',
+            riskTolerance: 'moderate'
+          }
+        },
+        (chunk) => {
+          // Handle streaming chunks
+          if (chunk.chunk) {
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastMessage = newMessages[newMessages.length - 1]
+              lastMessage.content += chunk.chunk
+              return newMessages
+            })
+          }
+
+          // Handle charts if they come through
+          if (chunk.chartHtml) {
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastMessage = newMessages[newMessages.length - 1]
+              lastMessage.chartHtml = chunk.chartHtml
+              lastMessage.hasChart = true
+              return newMessages
+            })
+          }
+        }
+      )
 
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-        isError: true,
+
+      // If streaming fails, try regular API call
+      try {
+        const response = await apiService.sendMessage(
+          messageText,
+          assistant.id,
+          {
+            userId: user?.id || `user-${Date.now()}`,
+            history: messages,
+            context: {
+              symbols: extractSymbols(messageText),
+              timeframe: '1d',
+              riskTolerance: 'moderate'
+            }
+          }
+        )
+
+        setMessages(prev => {
+          const newMessages = [...prev]
+          const lastMessage = newMessages[newMessages.length - 1]
+          lastMessage.content = response.response || response.message || response.content || 'No response received'
+          if (response.chartHtml) {
+            lastMessage.chartHtml = response.chartHtml
+            lastMessage.hasChart = true
+          }
+          return newMessages
+        })
+      } catch (fallbackError) {
+        console.error('Fallback API call failed:', fallbackError)
+        const errorMessage = {
+          id: (Date.now() + 2).toString(),
+          role: 'assistant',
+          content: 'Sorry, I encountered an error connecting to the server. Please check your connection and try again.',
+          timestamp: new Date().toISOString(),
+          isError: true,
+        }
+        setMessages(prev => [...prev, errorMessage])
       }
-      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, assistant])
+  }, [input, isLoading, assistant, user, messages])
 
   const handleSuggestionClick = (query) => {
     setInput(query)
     handleSubmit(null, query)
   }
 
-  const generateMockResponse = (question, assistant) => {
-    const responses = {
-      'market-analyst': `Based on my technical analysis, the market is showing strong bullish momentum. Key indicators:
-
-• **RSI**: Currently at 65, indicating moderate buying pressure
-• **MACD**: Positive divergence suggesting upward trend continuation
-• **Support**: Strong support established at $175
-• **Resistance**: Next major resistance at $195
-
-The overall trend remains positive with a 78% probability of reaching the target price within 2-3 weeks. Consider entering on any pullback to the $180-182 range.`,
-
-      'trading-advisor': `Here's my trading strategy recommendation:
-
-**Entry Point**: $182-184 on pullback
-**Target 1**: $195 (short-term)
-**Target 2**: $205 (medium-term)
-**Stop Loss**: $178 (risk management)
-
-**Risk/Reward Ratio**: 1:3.2 (favorable)
-
-This setup offers excellent risk-adjusted returns. Position sizing should be 2-3% of portfolio value to maintain proper risk management.`,
-
-      'portfolio-manager': `Portfolio optimization analysis complete:
-
-**Current Allocation**:
-- Technology: 35% (overweight)
-- Healthcare: 20% (balanced)
-- Finance: 15% (underweight)
-- Energy: 10% (underweight)
-- Cash: 20% (defensive position)
-
-**Recommended Adjustments**:
-1. Reduce tech exposure to 25%
-2. Increase healthcare to 25%
-3. Add 10% to emerging markets
-4. Maintain 15% cash reserve
-
-This rebalancing improves diversification and reduces concentration risk.`,
-
-      'risk-analyst': `Risk assessment complete. Key findings:
-
-**Portfolio Risk Metrics**:
-• Beta: 1.15 (moderate market sensitivity)
-• Sharpe Ratio: 1.82 (good risk-adjusted returns)
-• Max Drawdown: -12% (acceptable)
-• VaR (95%): $8,500 daily
-
-**Risk Factors Identified**:
-1. High concentration in tech sector (35%)
-2. Currency exposure from international holdings
-3. Interest rate sensitivity in bond positions
-
-**Mitigation Strategies**: Consider protective puts on high-beta positions and increase cash reserves to 20%.`,
-
-      'economist': `Global economic analysis update:
-
-**Key Macro Indicators**:
-• GDP Growth: 2.8% (above trend)
-• Inflation: 3.2% (moderating)
-• Unemployment: 3.7% (near full employment)
-• Fed Funds Rate: 5.25% (likely peaked)
-
-**Market Implications**:
-The Federal Reserve is likely done with rate hikes, creating a favorable environment for risk assets. Expect sector rotation from defensive to growth stocks over the next quarter.
-
-**Investment Themes**: Focus on technology, consumer discretionary, and emerging markets for the best opportunities.`
-    }
-
-    return responses[assistant.id] || responses['market-analyst']
+  // Extract stock symbols from message
+  const extractSymbols = (text) => {
+    const symbols = text.match(/\b[A-Z]{1,5}\b/g) || []
+    return symbols.filter(s => s.length >= 2 && s.length <= 5)
   }
 
   return (
@@ -220,7 +218,7 @@ The Federal Reserve is likely done with rate hikes, creating a favorable environ
                 </div>
               ) : (
                 <div className="max-w-3xl">
-                  <div className="relative overflow-hidden rounded-2xl border border-yellow-200/25 bg-gradient-to-b from-white/5 to-white/0 p-4">
+                  <div className={`relative overflow-hidden rounded-2xl border ${message.isError ? 'border-red-500/25 bg-red-500/5' : 'border-yellow-200/25 bg-gradient-to-b from-white/5 to-white/0'} p-4`}>
                     <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-yellow-200/60 to-transparent"></div>
                     <div className="flex items-start gap-3 mb-3">
                       <div className="w-8 h-10 rounded-md bg-gradient-to-b from-yellow-100/20 to-yellow-300/10 border border-yellow-200/50 flex items-center justify-center flex-shrink-0">
@@ -232,9 +230,17 @@ The Federal Reserve is likely done with rate hikes, creating a favorable environ
                         <div className="text-xs font-medium text-purple-100/70 mb-2">{message.guide || assistant.name}</div>
                         <div className="prose prose-sm max-w-none text-purple-100/90">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {message.content}
+                            {message.content || ''}
                           </ReactMarkdown>
                         </div>
+                        {message.chartHtml && (
+                          <div className="mt-4">
+                            <div
+                              className="w-full min-h-[400px] bg-white/5 rounded-lg overflow-hidden"
+                              dangerouslySetInnerHTML={{ __html: message.chartHtml }}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

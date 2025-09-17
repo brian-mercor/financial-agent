@@ -21,9 +21,11 @@ function LoginPage() {
       const result = await signIn(email, password)
       if (result.success) {
         navigate('/dashboard')
+      } else {
+        setError(result.error || 'Invalid email or password')
       }
     } catch (err) {
-      setError('Invalid email or password')
+      setError(err.message || 'Invalid email or password')
     } finally {
       setLoading(false)
     }
