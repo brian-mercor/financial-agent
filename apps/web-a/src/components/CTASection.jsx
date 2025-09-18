@@ -5,10 +5,10 @@ function CTASection() {
     <section id="download" className="py-20 bg-white">
       <div className="container mx-auto px-6 text-center">
         <h2 className="text-4xl font-bold mb-6">
-          Ready to Experience <span className="gradient-text">Excellence</span>?
+          Ready to Start <span className="gradient-text">Trading Smarter</span>?
         </h2>
         <p className="text-xl text-gray-600 mb-12 max-w-2xl mx-auto">
-          Join thousands who are already transforming their workflow with our innovative platform.
+          Join 10,000+ traders using AI to maximize profits and minimize risks. Available on all platforms.
         </p>
         <div className="flex flex-col sm:flex-row gap-6 justify-center">
           <div className="bg-black rounded-xl px-8 py-4 inline-flex items-center hover:shadow-xl transition cursor-pointer">

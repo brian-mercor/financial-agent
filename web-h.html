@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iChatbook - Your AI Partner That Grows With You</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;700&display=swap');
+        
+        :root {
+            --batik-indigo: #1e3a5f;
+            --batik-brown: #6b4423;
+            --quantum-glow: #00d4ff;
+            --memory-purple: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            overflow-x: hidden;
+        }
+
+        .batik-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.15;
+            pointer-events: none;
+            background-image: 
+                repeating-linear-gradient(45deg, var(--batik-indigo) 0, var(--batik-indigo) 10px, transparent 10px, transparent 20px),
+                repeating-linear-gradient(-45deg, var(--batik-brown) 0, var(--batik-brown) 10px, transparent 10px, transparent 20px);
+            mix-blend-mode: multiply;
+        }
+
+        .quantum-particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: var(--quantum-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--quantum-glow);
+            animation: quantum-float 20s infinite linear;
+        }
+
+        @keyframes quantum-float {
+            0% { transform: translate(0, 100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translate(200px, -100vh) rotate(720deg); opacity: 0; }
+        }
+
+        .feynman-line {
+            stroke: var(--quantum-glow);
+            stroke-width: 1.5;
+            fill: none;
+            opacity: 0.3;
+            animation: pulse-line 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse-line {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.8; }
+        }
+
+        .memory-node {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--memory-purple);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--memory-purple);
+            animation: memory-pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes memory-pulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .hero-text {
+            font-family: 'Space Grotesk', sans-serif;
+            background: linear-gradient(135deg, #fff 0%, var(--quantum-glow) 50%, var(--memory-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 8s ease-in-out infinite;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .feature-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 30px 60px rgba(139, 92, 246, 0.3);
+        }
+
+        .chat-bubble {
+            animation: float-up 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes float-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .cta-button {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .cta-button:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .neural-connection {
+            stroke: var(--memory-purple);
+            stroke-width: 1;
+            fill: none;
+            stroke-dasharray: 5, 5;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash {
+            to { stroke-dashoffset: -100; }
+        }
+
+        .batik-ornament {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px solid var(--batik-brown);
+            border-radius: 50%;
+            opacity: 0.2;
+        }
+
+        .batik-ornament::before {
+            content: '';
+            position: absolute;
+            inset: 8px;
+            border: 2px solid var(--batik-indigo);
+            border-radius: 50%;
+        }
+
+        @media (max-width: 768px) {
+            .hero-text {
+                font-size: 2.5rem !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-white relative">
+    <div class="batik-pattern"></div>
+    
+    <!-- Quantum Particles -->
+    <div id="quantum-field"></div>
+    
+    <!-- Neural Network Background -->
+    <svg class="fixed inset-0 w-full h-full pointer-events-none opacity-20" id="neural-svg">
+        <defs>
+            <pattern id="batik-pattern-svg" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+                <circle cx="50" cy="50" r="30" fill="none" stroke="#6b4423" stroke-width="0.5" opacity="0.3"/>
+                <path d="M 50 20 Q 80 50 50 80 Q 20 50 50 20" fill="none" stroke="#1e3a5f" stroke-width="0.5" opacity="0.3"/>
+            </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#batik-pattern-svg)"/>
+    </svg>
+
+    <!-- Navigation -->
+    <nav class="relative z-50 p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
+                    <span class="text-white font-bold text-xl">iC</span>
+                </div>
+                <span class="text-xl font-semibold">iChatbook</span>
+            </div>
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="#" class="hover:text-purple-400 transition-colors">Features</a>
+                <a href="#" class="hover:text-purple-400 transition-colors">Memory Tech</a>
+                <a href="#" class="hover:text-purple-400 transition-colors">Pricing</a>
+                <button class="px-6 py-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 transition-all transform hover:scale-105">
+                    Get Started
+                </button>
+            </div>
+            <button class="md:hidden" onclick="toggleMenu()">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="relative z-40 px-6 lg:px-8 py-20 lg:py-32">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h1 class="hero-text text-5xl lg:text-7xl font-bold mb-6">
+                    A Conversation That Remembers
+                </h1>
+                <p class="text-xl lg:text-2xl text-gray-300 mb-8 max-w-3xl mx-auto">
+                    Your AI Partner That Grows With You
+                </p>
+                <p class="text-gray-400 max-w-2xl mx-auto mb-12">
+                    Experience persistent memory AI that learns from every interaction, building a deeper understanding of your learning style, preferences, and goals over time.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="cta-button px-8 py-4 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg font-semibold transform hover:scale-105 transition-all">
+                        Start Your Journey
+                    </button>
+                    <button class="px-8 py-4 rounded-full border border-gray-600 hover:border-purple-400 text-lg font-semibold transition-all">
+                        Watch Demo
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Chat Demo -->
+            <div class="glass-card p-8 max-w-4xl mx-auto relative">
+                <div class="batik-ornament top-4 right-4"></div>
+                <div class="batik-ornament bottom-4 left-4"></div>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
+                        <span class="text-sm text-gray-400">Active Memory Session</span>
+                    </div>
+                    <span class="text-xs text-purple-400">2,847 interactions remembered</span>
+                </div>
+
+                <div class="space-y-4" id="chat-container">
+                    <div class="chat-bubble flex justify-end">
+                        <div class="bg-purple-500/20 rounded-2xl p-4 max-w-xs">
+                            <p class="text-sm">Explain quantum entanglement again, but relate it to our discussion about networking last week</p>
+                        </div>
+                    </div>
+                    <div class="chat-bubble flex">
+                        <div class="bg-blue-500/20 rounded-2xl p-4 max-w-md">
+                            <p class="text-sm mb-2">I remember you were studying TCP/IP protocols last week. Think of quantum entanglement like a permanent connection between particles...</p>
+                            <div class="flex items-center space-x-2 text-xs text-gray-400">
+                                <span>📚 Contextual from 5 past conversations</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex items-center space-x-3">
+                    <input type="text" placeholder="Continue your learning journey..." class="flex-1 bg-white/5 border border-gray-700 rounded-full px-6 py-3 focus:outline-none focus:border-purple-400 transition-colors">
+                    <button class="p-3 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 transition-all">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Grid -->
+    <section class="relative z-40 px-6 lg:px-8 py-20">
+        <div class="max-w-7xl mx-auto">
+            <h2 class="text-3xl lg:text-4xl font-bold text-center mb-16">
+                Memory-Enhanced Intelligence
+            </h2>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Contextual Learning</h3>
+                    <p class="text-gray-400 text-sm">Builds on previous conversations to provide increasingly relevant and personalized responses.</p>
+                </div>
+
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Pattern Recognition</h3>
+                    <p class="text-gray-400 text-sm">Identifies your learning patterns and adapts teaching methods to match your style.</p>
+                </div>
+
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Instant Recall</h3>
+                    <p class="text-gray-400 text-sm">Access any past conversation instantly, with intelligent cross-referencing and topic linking.</p>
+                </div>
+
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Progress Tracking</h3>
+                    <p class="text-gray-400 text-sm">Visualize your learning journey with detailed analytics and milestone achievements.</p>
+                </div>
+
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Multi-Profile Support</h3>
+                    <p class="text-gray-400 text-sm">Switch between different learning contexts while maintaining separate memory threads.</p>
+                </div>
+
+                <div class="feature-card glass-card p-6">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center mb-4">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-2">Privacy First</h3>
+                    <p class="text-gray-400 text-sm">Your memories are encrypted and yours alone. Full control over data retention and deletion.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Memory Visualization -->
+    <section class="relative z-40 px-6 lg:px-8 py-20">
+        <div class="max-w-6xl mx-auto">
+            <div class="glass-card p-8 lg:p-12 relative overflow-hidden">
+                <svg class="absolute inset-0 w-full h-full opacity-10" id="memory-network">
+                    <!-- Dynamic lines will be added here -->
+                </svg>
+                
+                <div class="relative z-10">
+                    <h2 class="text-3xl font-bold mb-6">Your Knowledge Graph</h2>
+                    <p class="text-gray-400 mb-8">Watch as your AI companion builds a comprehensive understanding of your learning journey</p>
+                    
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="bg-white/5 rounded-xl p-4 border border-purple-500/30">
+                            <div class="text-3xl font-bold text-purple-400 mb-2">2,847</div>
+                            <div class="text-sm text-gray-400">Total Interactions</div>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-4 border border-blue-500/30">
+                            <div class="text-3xl font-bold text-blue-400 mb-2">156</div>
+                            <div class="text-sm text-gray-400">Topics Mastered</div>
+                        </div>
+                        <div class="bg-white/5 rounded-xl p-4 border border-green-500/30">
+                            <div class="text-3xl font-bold text-green-400 mb-2">98%</div>
+                            <div class="text-sm text-gray-400">Context Accuracy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="relative z-40 px-6 lg:px-8 py-20">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-4xl lg:text-5xl font-bold mb-6">
+                Start Building Your AI Memory Today
+            </h2>
+            <p class="text-xl text-gray-400 mb-12">
+                Join thousands of power users who've transformed their learning with persistent AI memory
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="cta-button px-10 py-4 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-lg font-semibold transform hover:scale-105 transition-all">
+                    Get Started Free
+                </button>
+                <button class="px-10 py-4 rounded-full border border-gray-600 hover:border-purple-400 text-lg font-semibold transition-all">
+                    View Pricing
+                </button>
+            </div>
+            <p class="text-sm text-gray-500 mt-6">No credit card required • 14-day free trial • Cancel anytime</p>
+        </div>
+    </section>
+
+    <script>
+        // Generate quantum particles
+        const quantumField = document.getElementById('quantum-field');
+        for (let i = 0; i < 20; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'quantum-particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+            quantumField.appendChild(particle);
+        }
+
+        // Generate memory nodes
+        for (let i = 0; i < 10; i++) {
+            const node = document.createElement('div');
+            node.className = 'memory-node';
+            node.style.left = Math.random() * 100 + '%';
+            node.style.top = Math.random() * 100 + '%';
+            node.style.animationDelay = Math.random() * 2 + 's';
+            document.body.appendChild(node);
+        }
+
+        // Draw neural connections
+        const svg = document.getElementById('memory-network');
+        const width = 1000;
+        const height = 400;
+        
+        for (let i = 0; i < 15; i++) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const x1 = Math.random() * width;
+            const y1 = Math.random() * height;
+            const x2 = Math.random() * width;
+            const y2 = Math.random() * height;
+            const cx = (x1 + x2) / 2 + (Math.random() - 0.5) * 100;
+            const cy = (y1 + y2) / 2 + (Math.random() - 0.5) * 100;
+            
+            line.setAttribute('d', `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+            line.setAttribute('class', 'neural-connection');
+            svg.appendChild(line);
+        }
+
+        // Add Feynman diagram elements
+        const neuralSvg = document.getElementById('neural-svg');
+        for (let i = 0; i < 5; i++) {
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const startX = Math.random() * window.innerWidth;
+            const startY = Math.random() * window.innerHeight;
+            const endX = startX + (Math.random() - 0.5) * 200;
+            const endY = startY + (Math.random() - 0.5) * 200;
+            
+            line.setAttribute('d', `M ${startX} ${startY} L ${endX} ${endY}`);
+            line.setAttribute('class', 'feynman-line');
+            neuralSvg.appendChild(line);
+        }
+
+        // Interactive chat demo
+        const chatMessages = [
+            { type: 'user', text: 'Can you help me understand recursion in the context of the sorting algorithms we discussed?' },
+            { type: 'ai', text: 'Of course! Remember when we covered merge sort last Tuesday? Recursion there works by breaking the problem into smaller subproblems...', context: '📚 Building on 3 previous discussions' }
+        ];
+
+        let messageIndex = 0;
+        setInterval(() => {
+            if (messageIndex < chatMessages.length) {
+                const container = document.getElementById('chat-container');
+                const message = chatMessages[messageIndex];
+                const bubble = document.createElement('div');
+                bubble.className = 'chat-bubble flex ' + (message.type === 'user' ? 'justify-end' : '');
+                
+                const content = document.createElement('div');
+                content.className = message.type === 'user' ? 'bg-purple-500/20 rounded-2xl p-4 max-w-xs' : 'bg-blue-500/20 rounded-2xl p-4 max-w-md';
+                content.innerHTML = `
+                    <p class="text-sm ${message.context ? 'mb-2' : ''}">${message.text}</p>
+                    ${message.context ? `<div class="flex items-center space-x-2 text-xs text-gray-400"><span>${message.context}</span></div>` : ''}
+                `;
+                
+                bubble.appendChild(content);
+                container.appendChild(bubble);
+                messageIndex++;
+            }
+        }, 3000);
+
+        // Mobile menu toggle
+        function toggleMenu() {
+            // Implementation for mobile menu
+        }
+
+        // Parallax effect on scroll
+        window.addEventListener('scroll', () => {
+            const scrolled = window.pageYOffset;
+            const particles = document.querySelectorAll('.quantum-particle');
+            particles.forEach(particle => {
+                particle.style.transform = `translateY(${scrolled * 0.5}px)`;
+            });
+        });
+    </script>
+</body>
+</html>

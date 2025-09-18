@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Streaming Simulation</title>
+</head>
+<body>
+    <h1>Streaming Simulation Test</h1>
+    <div id="output" style="border: 1px solid #ccc; padding: 10px; min-height: 100px;"></div>
+    <div id="chart" style="border: 1px solid #00f; padding: 10px; min-height: 100px; margin-top: 10px;"></div>
+
+    <script type="module">
+        // Simulate the API service
+        const apiService = {
+            async sendMessage(message, assistantType, options = {}) {
+                const response = await fetch('/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message,
+                        assistantType,
+                        userId: options.userId || `user-${Date.now()}`,
+                        stream: false
+                    })
+                });
+                return response.json();
+            },
+
+            async streamMessage(message, assistantType, options = {}, onChunk) {
+                try {
+                    // Call the regular endpoint (Motia returns JSON even with stream:true)
+                    const response = await this.sendMessage(message, assistantType, options);
+
+                    // Simulate streaming by breaking the response into chunks
+                    const text = response.response || response.message || response.content || '';
+                    const words = text.split(' ');
+
+                    for (const word of words) {
+                        onChunk({ chunk: word + ' ' });
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                    }
+
+                    // Send chart if present
+                    if (response.chartHtml) {
+                        onChunk({ chartHtml: response.chartHtml });
+                    }
+
+                    return response;
+                } catch (error) {
+                    console.error('Error in streamMessage:', error);
+                    throw error;
+                }
+            }
+        };
+
+        // Test streaming
+        const outputDiv = document.getElementById('output');
+        const chartDiv = document.getElementById('chart');
+
+        outputDiv.innerHTML = 'Starting test...<br>';
+
+        apiService.streamMessage(
+            'what is P/E ratio',
+            'general',
+            {},
+            (chunk) => {
+                if (chunk.chunk) {
+                    outputDiv.innerHTML += chunk.chunk;
+                }
+                if (chunk.chartHtml) {
+                    chartDiv.innerHTML = '<p>Chart received (HTML content)</p>';
+                }
+            }
+        ).then(response => {
+            outputDiv.innerHTML += '<br><br>Complete! Response: ' + JSON.stringify(response);
+        }).catch(error => {
+            outputDiv.innerHTML += '<br><br>Error: ' + error.message;
+        });
+    </script>
+</body>
+</html>

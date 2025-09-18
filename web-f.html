@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>iChatbook — Build Your Second Brain: Connect Ideas, Organize Knowledge</title>
+  <meta name="description" content="iChatbook is your AI partner for knowledge management. Capture atomic notes, connect ideas across sources, and build a personal knowledge base using Zettelkasten or PARA." />
+  <meta name="keywords" content="iChatbook, second brain, knowledge management, productivity, connect ideas, personal knowledge base, Zettelkasten, PARA, backlinks, graph" />
+  <meta property="og:title" content="Build Your Second Brain — iChatbook" />
+  <meta property="og:description" content="An AI partner to organize and connect your knowledge. Capture, weave, and retrieve ideas across your personal knowledge base." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dummyimage.com/1200x630/0b0c16/ffffff&text=iChatbook" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c16;
+      --panel: rgba(255, 255, 255, 0.06);
+      --panel-strong: rgba(255, 255, 255, 0.12);
+      --text: #e9ecf5;
+      --muted: #a4acc2;
+      --link: #8bd3ff;
+      --accent: #ff6bb3;
+      --accent-2: #ffb400;
+      --accent-3: #2e6af6;
+      --good: #3ce6b2;
+      --ring: 0 0 0 8px rgb(255 107 179 / 12%);
+      --radius: 16px;
+      --shadow-1: 0 10px 30px rgba(0,0,0,0.35);
+      --shadow-2: 0 30px 80px rgba(0,0,0,0.45);
+      --gradient: linear-gradient(120deg, #5b1aa1 0%, #b32fd3 15%, #e33ba0 30%, #ff6b6b 45%, #ffb400 60%, #00bfa6 75%, #2e6af6 90%, #5b1aa1 100%);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(1200px 800px at 10% -20%, #301a44 0%, transparent 60%),
+        radial-gradient(1200px 800px at 110% 20%, #0a1f3f 0%, transparent 60%),
+        linear-gradient(180deg, #0b0c16 0%, #0b0c16 50%, #070812 100%);
+      background-attachment: fixed;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    a { color: var(--link); text-decoration-thickness: .08em; text-underline-offset: .2em; }
+    .container { width: min(1200px, 92vw); margin: 0 auto; }
+
+    /* Header */
+    header.site-header {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: saturate(120%) blur(14px);
+      background: linear-gradient(180deg, rgba(10,11,22,0.86), rgba(10,11,22,0.66));
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 0;
+    }
+    .brand {
+      display: inline-flex; align-items: center; gap: 10px; text-decoration: none;
+    }
+    .brand-mark {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: var(--gradient);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.15), 0 8px 20px rgba(227,59,160,.35);
+      position: relative; overflow: hidden;
+    }
+    .brand-mark::after {
+      content: "";
+      position: absolute; inset: 0;
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.25) 0 2px, transparent 2px 6px),
+        repeating-linear-gradient(-45deg, rgba(255,255,255,.18) 0 2px, transparent 2px 6px);
+      mix-blend-mode: overlay; opacity: .35;
+    }
+    .brand-text { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-weight: 800; letter-spacing: 0.2px; color: #fff; font-size: 1.1rem; }
+    .nav-links { display: flex; gap: 18px; align-items: center; }
+    .nav-links a { color: var(--muted); text-decoration: none; font-weight: 600; }
+    .nav-links a:hover { color: var(--text); }
+    .btn {
+      display: inline-flex; align-items: center; gap: .6em; font-weight: 700; letter-spacing: .2px;
+      border: none; cursor: pointer; border-radius: 999px; padding: 12px 18px;
+      color: #12131f; background: linear-gradient(135deg, #ff6bb3, #ffb400);
+      box-shadow: 0 10px 24px rgba(255,107,179,.35), 0 10px 24px rgba(255,180,0,.25);
+      transition: transform .15s ease, box-shadow .3s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:focus-visible { outline: none; box-shadow: var(--ring), var(--shadow-1); }
+    .btn.secondary {
+      background: transparent; border: 1px solid rgba(255,255,255,.14); color: var(--text);
+      box-shadow: none;
+    }
+
+    /* Hero */
+    .hero {
+      position: relative; overflow: hidden;
+      padding: clamp(48px, 8vw, 96px) 0 28px;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+    }
+    .hero-inner {
+      display: grid; grid-template-columns: 1.2fr 1fr; gap: min(5vw, 40px); align-items: center;
+    }
+    @media (max-width: 980px) {
+      .hero-inner { grid-template-columns: 1fr; }
+    }
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 6px 10px; border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: #dce0ee; font-size: .85rem; font-weight: 700; letter-spacing: .2px;
+    }
+    .title {
+      font-family: "Plus Jakarta Sans", Inter, sans-serif;
+      font-size: clamp(28px, 5.6vw, 64px);
+      line-height: 1.05; letter-spacing: -0.02em; margin: 14px 0 16px;
+      color: #fff;
+    }
+    .title .gradient {
+      background: var(--gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 12px 40px rgba(227,59,160,.18);
+    }
+    .subtitle {
+      color: var(--muted);
+      font-size: clamp(14px, 1.8vw, 18px); max-width: 52ch; margin: 0 0 22px;
+    }
+    .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    .input {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 999px; padding: 12px 16px; color: var(--text);
+      min-width: min(380px, 80vw);
+    }
+    .input::placeholder { color: #b6bed4; }
+    .meta {
+      margin-top: 14px; color: #9ca7c5; font-size: 13px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
+    }
+    .meta .dot { width: 8px; height: 8px; background: var(--good); border-radius: 50%; box-shadow: 0 0 0 4px rgba(60,230,178,.15); display: inline-block; }
+    .hero-visual {
+      position: relative; isolation: isolate;
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.1);
+      box-shadow: var(--shadow-2);
+      overflow: hidden; min-height: 360px;
+    }
+    .hero-visual .fabric-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        repeating-linear-gradient(60deg, rgba(255,255,255,.06) 0 2px, transparent 2px 8px),
+        repeating-linear-gradient(-60deg, rgba(255,255,255,.05) 0 2px, transparent 2px 8px);
+      mix-blend-mode: overlay; opacity: .45;
+    }
+    .hero-legend {
+      position: absolute; right: 12px; bottom: 12px; z-index: 3;
+      display: flex; gap: 10px; padding: 6px 8px; border-radius: 12px;
+      background: rgba(11,12,22,.6); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(10px);
+      font-size: 12px; color: #d6dbee;
+    }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .legend-swatch { width: 12px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+
+    /* Features */
+    .section { padding: clamp(36px, 7vw, 84px) 0; }
+    .section-header { text-align: center; margin-bottom: clamp(24px, 5vw, 40px); }
+    .kicker { color: #cdd3ea; font-weight: 700; letter-spacing: .2px; font-size: 13px; }
+    .h2 { font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: clamp(22px, 3.5vw, 36px); margin: 6px 0 12px; }
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+    }
+    @media (max-width: 900px) {
+      .feature-grid { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: var(--radius);
+      padding: 18px; box-shadow: var(--shadow-1);
+    }
+    .card h3 { margin: 6px 0 6px; font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); }
+    .pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      padding: 6px 10px; border-radius: 999px; font-weight: 700; color: #e9ecf5; font-size: 12px;
+    }
+
+    /* Mode switch */
+    .segmented {
+      display: inline-flex; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+      border-radius: 999px; padding: 4px; gap: 4px;
+    }
+    .segment {
+      cursor: pointer; user-select: none; -webkit-tap-highlight-color: transparent;
+      padding: 8px 14px; border-radius: 999px; font-weight: 700; font-size: 14px;
+      color: #d5dcf3; background: transparent; border: none;
+    }
+    .segment.active {
+      background: linear-gradient(135deg, #ff6bb3, #ffb400);
+      color: #12131f; box-shadow: 0 6px 18px rgba(255,107,179,.25), 0 6px 18px rgba(255,180,0,.15);
+    }
+
+    /* Graph demo */
+    .demo {
+      display: grid; grid-template-columns: 1.1fr 1.1fr; gap: 18px; align-items: stretch;
+    }
+    @media (max-width: 1020px) {
+      .demo { grid-template-columns: 1fr; }
+    }
+    .panel {
+      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border: 1px solid rgba(255,255,255,.12);
+      border-radius: var(--radius); padding: 16px; position: relative; overflow: hidden;
+      box-shadow: var(--shadow-2);
+    }
+    .panel h3 { margin: 0 0 6px; font-family: "Plus Jakarta Sans", Inter, sans-serif; font-size: 18px; }
+    .panel p { margin: 0; color: var(--muted); }
+    .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0 12px; }
+    .control-input {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px; padding: 10px 12px; color: var(--text);
+    }
+    .toggle {
+      display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+      font-weight: 700; color: #dbe0f3; border-radius: 999px; padding: 8px 12px;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    }
+    .toggle input { appearance: none; width: 18px; height: 18px; border-radius: 5px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.25); position: relative; }
+    .toggle input:checked { background: linear-gradient(135deg, #ff6bb3, #ffb400); border-color: transparent; box-shadow: 0 0 0 4px rgba(255,107,179,.15); }
+
+    .graph-wrap { position: relative; height: min(560px, 62vh); border-radius: 12px; overflow: hidden; }
+    .graph-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .graph-overlay {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(600px 220px at 10% 0%, rgba(227,59,160,.16), transparent 60%),
+                  radial-gradient(1200px 480px at 110% 40%, rgba(46,106,246,.11), transparent 50%);
+      mix-blend-mode: screen; opacity: .6;
+    }
+    .legend {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 12px; color: #c9d0ea;
+    }
+    .legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); }
+
+    /* CTA Section */
+    .cta {
+      display: grid; grid-template-columns: 1.3fr 1fr; gap: 18px; align-items: center;
+    }
+    @media (max-width: 980px) { .cta { grid-template-columns: 1fr; } }
+    .checklist { display: grid; gap: 10px; margin-top: 10px; }
+    .check { display: flex; gap: 10px; align-items: center; color: #d9dff3; }
+    .check i { width: 18px; height: 18px; border-radius: 4px; background: linear-gradient(135deg, #28d7a2, #8bd3ff); display: inline-block; box-shadow: 0 5px 14px rgba(40,215,162,.24); }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid rgba(255,255,255,.1);
+      padding: 28px 0 48px;
+      color: #b7bfd9;
+    }
+    footer .grid {
+      display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 18px;
+    }
+    @media (max-width: 900px) { footer .grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 600px) { footer .grid { grid-template-columns: 1fr; } }
+    footer a { color: #cfd6f1; text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* Accessibility and animation prefs */
+    @media (prefers-reduced-motion: reduce) {
+      .btn, .segment, .nav a, .toggle, .card { transition: none !important; }
+    }
+
+    /* Small utilities */
+    .space { height: 10px; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav">
+      <a href="#" class="brand" aria-label="iChatbook Home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-text">iChatbook</span>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#graph">Graph</a>
+        <a href="#how">How it Works</a>
+        <a href="#pricing">Pricing</a>
+        <button class="btn" id="startTop">Start Free</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container hero-inner">
+        <div>
+          <span class="eyebrow"><span class="dot"></span> Build Your Second Brain</span>
+          <h1 class="title">
+            An AI Partner to <span class="gradient">Organize</span> and <span class="gradient">Connect</span> Your Knowledge
+          </h1>
+          <p class="subtitle">
+            iChatbook helps knowledge workers and productivity enthusiasts weave ideas across sources—turning highlights, notes, and research into a living, connected personal knowledge base. Designed for Zettelkasten, PARA, or your own hybrid workflow.
+          </p>
+          <div class="hero-cta">
+            <input class="input" id="emailHero" type="email" placeholder="Enter your email to get early access" aria-label="Email address">
+            <button class="btn" id="ctaHero">Get Early Access</button>
+            <button class="btn secondary" id="demoScroll">See it in action</button>
+          </div>
+          <div class="meta">
+            <span>AI-powered capture • smart backlinks • frictionless retrieval</span>
+            <span>•</span>
+            <span>Keywords: second brain, knowledge management, connect ideas, Zettelkasten</span>
+          </div>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <svg id="heroWeave" viewBox="0 0 1200 640" preserveAspectRatio="none" role="img" aria-label="Bargello flame stitch waveform visualization"></svg>
+          <div class="fabric-overlay"></div>
+          <div class="hero-legend">
+            <span class="legend-item"><span class="legend-swatch" style="background: linear-gradient(135deg,#ff6bb3,#ffb400);"></span>Flame stitch</span>
+            <span class="legend-item"><span class="legend-swatch" style="background: linear-gradient(135deg,#00bfa6,#2e6af6);"></span>Audio wave</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section id="features" class="section">
+      <div class="container">
+        <div class="section-header">
+          <div class="kicker">Capture • Connect • Create</div>
+          <h2 class="h2">From scattered snippets to a woven second brain</h2>
+          <div class="space"></div>
+          <div class="segmented" role="tablist" aria-label="Workflow mode">
+            <button class="segment active" role="tab" aria-selected="true" data-mode="hybrid">Hybrid</button>
+            <button class="segment" role="tab" aria-selected="false" data-mode="zettelkasten">Zettelkasten</button>
+            <button class="segment" role="tab" aria-selected="false" data-mode="para">PARA</button>
+          </div>
+        </div>
+
+        <div class="feature-grid">
+          <div class="card">
+            <span class="pill">Atomic capture</span>
+            <h3>Capture ideas without friction</h3>
+            <p>Clip from the web, books, PDFs, and transcripts. iChatbook auto-extracts context, suggests titles, and converts highlights into atomic notes ready for linking.</p>
+          </div>
+          <div class="card">
+            <span class="pill">Smart links</span>
+            <h3>Connect ideas—automatically and intentionally</h3>
+            <p>AI surfaces related notes, creates backlinks, and proposes bridges between concepts. Manually weave connections to mirror your mental model.</p>
+          </div>
+          <div class="card">
+            <span class="pill">Thinking tools</span>
+            <h3>Grow a personal knowledge base</h3>
+            <p>Build evergreen notes, thread insights across projects, and move fluidly between Zettelkasten and PARA views—without duplicating effort.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Graph Demo -->
+    <section id="graph" class="section">
+      <div class="container demo">
+        <div class="panel">
+          <h3>Weave ideas into insight</h3>
+          <p>Play with the graph: search, highlight, and connect two notes to create a new link. Toggle your preferred workflow.</p>
+          <div class="controls">
+            <div class="segmented" id="modeSwitch" aria-label="Graph layout">
+              <button class="segment active" data-mode="hybrid">Hybrid</button>
+              <button class="segment" data-mode="zettelkasten">Zettelkasten</button>
+              <button class="segment" data-mode="para">PARA</button>
+            </div>
+            <label class="toggle"><input type="checkbox" id="weaveMode"> Weave mode</label>
+            <input class="control-input" id="searchInput" type="text" placeholder="Search notes…">
+          </div>
+          <div class="legend">
+            <span><i style="background:#ffb400"></i> Project</span>
+            <span><i style="background:#3ce6b2"></i> Area</span>
+            <span><i style="background:#2e6af6"></i> Resource</span>
+            <span><i style="background:#8d5efc"></i> Archive</span>
+            <span><i style="background:#ff6bb3"></i> Evergreen Note</span>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="graph-wrap" aria-live="polite">
+            <svg id="graphSvg"></svg>
+            <div class="graph-overlay"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it Works / CTA -->
+    <section id="how" class="section">
+      <div class="container cta">
+        <div class="panel">
+          <span class="pill">How it works</span>
+          <h3 class="h2">From capture to clarity—powered by an AI partner</h3>
+          <p class="subtitle" style="margin-top: 6px;">
+            - Capture: Save highlights, notes, and references. AI cleans, tags, and links them.<br>
+            - Connect: See auto-suggested links and weave your own with one click.<br>
+            - Create: Summon a draft from connected notes. Export to your tools.
+          </p>
+          <div class="checklist">
+            <div class="check"><i></i> Zettelkasten: atomic notes, backlinks, evergreen writing</div>
+            <div class="check"><i></i> PARA: projects, areas, resources, archives</div>
+            <div class="check"><i></i> AI suggestions that respect your structure</div>
+            <div class="check"><i></i> Keyboard-first, blazing fast, privacy-first</div>
+          </div>
+          <div class="space"></div>
+          <div class="hero-cta">
+            <input class="input" id="emailCta" type="email" placeholder="Your work email" aria-label="Email">
+            <button class="btn" id="ctaBottom">Start Free</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Why iChatbook stands out</h3>
+          <p>Not just another notes app. iChatbook turns passive consumption into active synthesis.</p>
+          <div class="feature-grid" style="grid-template-columns: 1fr; gap: 12px; margin-top: 10px;">
+            <div class="card">
+              <h3>Connect across sources</h3>
+              <p>Link ideas from podcasts, PDFs, tweets, and research—see a unified map of your thinking.</p>
+            </div>
+            <div class="card">
+              <h3>Second-brain friendly</h3>
+              <p>Designed for Zettelkasten and PARA with a hybrid view to move from thinking to doing.</p>
+            </div>
+            <div class="card">
+              <h3>Retrieval on demand</h3>
+              <p>Ask natural-language questions; iChatbook answers with citations across your graph.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Pricing teaser -->
+    <section id="pricing" class="section">
+      <div class="container">
+        <div class="panel">
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap: 16px;">
+            <div>
+              <h3 class="h2" style="margin: 0 0 6px;">Get started free</h3>
+              <p class="subtitle" style="margin:0;">Free plan for individuals. Pro adds advanced AI linking, unlimited graph, and priority sync.</p>
+            </div>
+            <div class="hero-cta">
+              <button class="btn" id="startPricing">Create your knowledge base</button>
+              <button class="btn secondary" id="contactSales">Contact sales</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container grid">
+      <div>
+        <a class="brand" href="#"><span class="brand-mark"></span><span class="brand-text">iChatbook</span></a>
+        <p style="margin-top:10px;">Textile-inspired thinking for modern knowledge work. Weave your second brain with AI that connects ideas across contexts.</p>
+      </div>
+      <div>
+        <strong>Product</strong>
+        <ul style="padding-left:16px; margin: 8px 0 0;">
+          <li><a href="#features">Features</a></li>
+          <li><a href="#graph">Graph</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div>
+        <strong>Resources</strong>
+        <ul style="padding-left:16px; margin: 8px 0 0;">
+          <li><a href="#">Guides: Zettelkasten</a></li>
+          <li><a href="#">Guides: PARA</a></li>
+          <li><a href="#">Help Center</a></li>
+          <li><a href="#">Changelog</a></li>
+        </ul>
+      </div>
+      <div>
+        <strong>Company</strong>
+        <ul style="padding-left:16px; margin: 8px 0 0;">
+          <li><a href="#">About</a></li>
+          <li><a href="#">Privacy</a></li>
+          <li><a href="#">Terms</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container" style="margin-top: 26px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap: wrap;">
+      <small>© <span id="year"></span> iChatbook, Inc. All rights reserved.</small>
+      <small>Made for knowledge workers and productivity enthusiasts.</small>
+    </div>
+  </footer>
+
+  <!-- Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+
+  <script>
+    // Utility: email validation
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email).toLowerCase());
+    }
+
+    // CTA handlers
+    function handleSignup(inputId) {
+      const el = document.getElementById(inputId);
+      const email = (el.value || "").trim();
+      if (!validateEmail(email)) {
+        el.focus();
+        el.style.boxShadow = "0 0 0 6px rgba(255,107,179,.15)";
+        el.style.borderColor = "rgba(255,107,179,.7)";
+        setTimeout(()=>{ el.style.boxShadow = ""; el.style.borderColor = "rgba(255,255,255,.12)"; }, 1400);
+        return;
+      }
+      alert("Thanks! We'll be in touch at: " + email);
+      el.value = "";
+    }
+    document.getElementById("ctaHero").addEventListener("click", () => handleSignup("emailHero"));
+    document.getElementById("ctaBottom").addEventListener("click", () => handleSignup("emailCta"));
+    document.getElementById("startTop").addEventListener("click", () => document.getElementById("emailHero").focus());
+    document.getElementById("startPricing").addEventListener("click", () => document.getElementById("emailHero").focus());
+    document.getElementById("contactSales").addEventListener("click", () => alert("Contact sales: hello@ichatbook.example"));
+
+    document.getElementById("demoScroll").addEventListener("click", () => {
+      document.getElementById("graph").scrollIntoView({ behavior: "smooth" });
+    });
+
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Hero Weave: Bargello flame stitch meets audio waveforms
+    (function heroWeave() {
+      const svg = document.getElementById("heroWeave");
+      let width, height, rafId;
+      const lineCount = 9;
+      const colors = [
+        "#5b1aa1", "#b32fd3", "#e33ba0", "#ff6b6b", "#ffb400",
+        "#00bfa6", "#2e6af6", "#8d5efc", "#ff8cc6"
+      ];
+
+      function resize() {
+        const rect = svg.getBoundingClientRect();
+        width = rect.width || 1200;
+        height = rect.height || 480;
+        svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      }
+
+      function modulatedZigzagPath(w, baseY, baseAmp, dx, phase, modRate) {
+        let x = 0, up = true;
+        let d = `M 0 ${baseY}`;
+        let idx = 0;
+        while (x <= w + dx) {
+          x += dx;
+          const amp = baseAmp * (0.55 + 0.45 * Math.sin((idx * modRate) + phase) );
+          const y = baseY + (up ? -amp : amp);
+          d += ` L ${x} ${y}`;
+          up = !up; idx++;
+        }
+        return d;
+      }
+
+      function draw(t) {
+        svg.innerHTML = "";
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        svg.appendChild(g);
+
+        // Background textile gradient
+        const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        bg.setAttribute("x", 0); bg.setAttribute("y", 0);
+        bg.setAttribute("width", width); bg.setAttribute("height", height);
+        bg.setAttribute("fill", "url(#fabricGrad)");
+        g.appendChild(bg);
+
+        // Defs: gradients and filters
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        defs.innerHTML = `
+          <linearGradient id="fabricGrad" gradientTransform="rotate(20)">
+            <stop offset="0%" stop-color="#140b22"/>
+            <stop offset="50%" stop-color="#0f0f22"/>
+            <stop offset="100%" stop-color="#0b0c16"/>
+          </linearGradient>
+          <filter id="softGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        `;
+        svg.appendChild(defs);
+
+        // Draw flame stitch + audio waves
+        const dx = Math.max(10, width / 48);
+        for (let i = 0; i < lineCount; i++) {
+          const baseY = (height * (i + 1)) / (lineCount + 1);
+          const amp = (height / 8) * (0.6 + 0.3 * Math.sin(t * 0.0006 + i));
+          const phase = t * 0.003 + i * 0.6;
+          const modRate = 0.9 + (i % 2 === 0 ? 0.2 : -0.2);
+
+          const d = modulatedZigzagPath(width, baseY, amp, dx, phase, modRate);
+
+          const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          path.setAttribute("d", d);
+          path.setAttribute("fill", "none");
+          path.setAttribute("stroke", colors[i % colors.length]);
+          path.setAttribute("stroke-width", 2.4 + (i % 3 === 0 ? 0.4 : 0));
+          path.setAttribute("stroke-linecap", "round");
+          path.setAttribute("stroke-dasharray", "6 8");
+          path.setAttribute("opacity", 0.95 - i * 0.06);
+          path.setAttribute("filter", "url(#softGlow)");
+          g.appendChild(path);
+        }
+
+        // Light wave overlay to emphasize audio
+        for (let k = 0; k < 3; k++) {
+          const baseY = height * (0.2 + 0.25 * k);
+          const amp = height / 10 * (1 + 0.2 * Math.sin(t * 0.001 + k));
+          const d = modulatedZigzagPath(width, baseY, amp, dx * 0.8, t * 0.003 + k, 0.7);
+          const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          p.setAttribute("d", d);
+          p.setAttribute("fill", "none");
+          p.setAttribute("stroke", k % 2 ? "#2e6af6" : "#00bfa6");
+          p.setAttribute("stroke-width", 1.6);
+          p.setAttribute("stroke-linecap", "round");
+          p.setAttribute("stroke-dasharray", "4 10");
+          p.setAttribute("opacity", 0.55);
+          g.appendChild(p);
+        }
+
+        rafId = requestAnimationFrame(draw);
+      }
+
+      function onResize() { resize(); }
+      resize();
+      rafId = requestAnimationFrame(draw);
+      window.addEventListener("resize", onResize);
+      window.addEventListener("visibilitychange", () => {
+        if (document.hidden) cancelAnimationFrame(rafId);
+        else rafId = requestAnimationFrame(draw);
+      });
+    })();
+
+    // Graph Demo with D3: interactive knowledge graph
+    (function knowledgeGraph() {
+      const svg = d3.select("#graphSvg");
+      const wrap = document.querySelector(".graph-wrap");
+      let width = wrap.clientWidth, height = wrap.clientHeight;
+
+      const modes = {
+        hybrid: "hybrid",
+        zettelkasten: "zettelkasten",
+        para: "para"
+      };
+      let currentMode = modes.hybrid;
+
+      const initialNodes = [
+        // PARA
+        { id: "Project: Launch Course", type: "Project" },
+        { id: "Project: Write Book", type: "Project" },
+        { id: "Area: Research", type: "Area" },
+        { id: "Area: Health", type: "Area" },
+        { id: "Resource: Papers", type: "Resource" },
+        { id: "Resource: Clips", type: "Resource" },
+        { id: "Archive: 2024", type: "Archive" },
+
+        // Zettelkasten Notes
+        { id: "Evergreen: Second Brain", type: "Evergreen" },
+        { id: "Evergreen: Attention is a resource", type: "Evergreen" },
+        { id: "Evergreen: Idea serendipity", type: "Evergreen" },
+        { id: "Note: Zettelkasten vs PARA", type: "Evergreen" },
+        { id: "Note: Smart backlinks", type: "Evergreen" },
+        { id: "Note: Textile metaphors", type: "Evergreen" }
+      ];
+
+      const initialLinks = [
+        { source: "Project: Launch Course", target: "Evergreen: Second Brain" },
+        { source: "Project: Launch Course", target: "Area: Research" },
+        { source: "Project: Write Book", target: "Evergreen: Idea serendipity" },
+        { source: "Area: Research", target: "Resource: Papers" },
+        { source: "Resource: Clips", target: "Evergreen: Smart backlinks" },
+        { source: "Evergreen: Second Brain", target: "Note: Zettelkasten vs PARA" },
+        { source: "Evergreen: Attention is a resource", target: "Project: Write Book" },
+        { source: "Archive: 2024", target: "Project: Launch Course" },
+        { source: "Evergreen: Idea serendipity", target: "Note: Smart backlinks" },
+        { source: "Note: Textile metaphors", target: "Evergreen: Second Brain" }
+      ];
+
+      const colorByType = {
+        Project: "#ffb400",
+        Area: "#3ce6b2",
+        Resource: "#2e6af6",
+        Archive: "#8d5efc",
+        Evergreen: "#ff6bb3"
+      };
+
+      const nodes = initialNodes.map(d => ({ ...d }));
+      const links = initialLinks.map(d => ({ ...d }));
+
+      // SVG layers
+      svg.selectAll("*").remove();
+      const defs = svg.append("defs");
+      const bgGrad = defs.append("linearGradient").attr("id", "bgGrad").attr("x1", "0%").attr("x2", "100%");
+      bgGrad.append("stop").attr("offset", "0%").attr("stop-color", "#0b0c16");
+      bgGrad.append("stop").attr("offset", "100%").attr("stop-color", "#0b0f20");
+
+      svg.append("rect").attr("width", "100%").attr("height", "100%").attr("fill", "url(#bgGrad)");
+      const gLinks = svg.append("g").attr("stroke-linecap", "round");
+      const gNodes = svg.append("g");
+      const gLabels = svg.append("g").attr("font-size", 12).attr("fill", "#d9def1");
+
+      // Simulation
+      let simulation;
+      function initSim() {
+        if (simulation) simulation.stop();
+        simulation = d3.forceSimulation(nodes)
+          .force("link", d3.forceLink(links).id(d => d.id).distance(90).strength(0.7))
+          .force("charge", d3.forceManyBody().strength(-280))
+          .force("center", d3.forceCenter(width / 2, height / 2))
+          .force("collision", d3.forceCollide().radius(d => nodeRadius(d) + 8))
+          .on("tick", ticked);
+
+        updateForMode(currentMode);
+      }
+
+      function nodeRadius(d) {
+        switch(d.type) {
+          case "Project": return 16;
+          case "Area": return 14;
+          case "Resource": return 12;
+          case "Archive": return 12;
+          case "Evergreen": return 10;
+          default: return 10;
+        }
+      }
+
+      function updateForMode(mode) {
+        currentMode = mode;
+        // ForceX/Y clustering depending on mode
+        const strength = 0.06;
+        simulation
+          .force("x", d3.forceX(d => {
+            if (mode === modes.zettelkasten) return width * 0.5;
+            if (mode === modes.para) {
+              const map = { Project: 0.2, Area: 0.45, Resource: 0.7, Archive: 0.9, Evergreen: 0.55 };
+              return width * (map[d.type] || 0.5);
+            }
+            // hybrid
+            const map = { Project: 0.35, Area: 0.55, Resource: 0.7, Archive: 0.85, Evergreen: 0.25 };
+            return width * (map[d.type] || 0.5);
+          }).strength(strength))
+          .force("y", d3.forceY(d => {
+            if (mode === modes.zettelkasten) {
+              return height * 0.5;
+            }
+            if (mode === modes.para) {
+              const mapY = { Project: 0.3, Area: 0.5, Resource: 0.65, Archive: 0.82, Evergreen: 0.5 };
+              return height * (mapY[d.type] || 0.5);
+            }
+            return height * 0.5;
+          }).strength(strength));
+        simulation.alpha(0.85).restart();
+      }
+
+      // Draw
+      let linkSel = gLinks.selectAll("line").data(links).join("line")
+        .attr("stroke", "rgba(255,255,255,.22)")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "5 6");
+
+      let nodeSel = gNodes.selectAll("circle").data(nodes).join("circle")
+        .attr("r", d => nodeRadius(d))
+        .attr("fill", d => colorByType[d.type] || "#ccc")
+        .attr("stroke", "rgba(255,255,255,.35)")
+        .attr("stroke-width", 2)
+        .style("filter", "drop-shadow(0 6px 14px rgba(0,0,0,.35))")
+        .call(d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended))
+        .on("click", nodeClick)
+        .on("mouseenter", function(_, d){ d3.select(this).attr("stroke-width", 3); })
+        .on("mouseleave", function(_, d){ d3.select(this).attr("stroke-width", 2); });
+
+      let labelSel = gLabels.selectAll("text").data(nodes).join("text")
+        .text(d => d.id)
+        .attr("text-anchor", "middle")
+        .attr("dy", d => nodeRadius(d) + 16)
+        .style("pointer-events", "none")
+        .style("font-weight", 600)
+        .style("opacity", .9);
+
+      function ticked() {
+        linkSel
+          .attr("x1", d => d.source.x = clamp(d.source.x, 0, width))
+          .attr("y1", d => d.source.y = clamp(d.source.y, 0, height))
+          .attr("x2", d => d.target.x = clamp(d.target.x, 0, width))
+          .attr("y2", d => d.target.y = clamp(d.target.y, 0, height));
+
+        nodeSel
+          .attr("cx", d => d.x = clamp(d.x, 0, width))
+          .attr("cy", d => d.y = clamp(d.y, 0, height));
+
+        labelSel
+          .attr("x", d => d.x)
+          .attr("y", d => d.y);
+      }
+
+      function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+      function dragstarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.2).restart();
+        d.fx = d.x; d.fy = d.y;
+      }
+      function dragged(event, d) {
+        d.fx = event.x; d.fy = event.y;
+      }
+      function dragended(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null; d.fy = null;
+      }
+
+      // Weave mode: connect nodes by clicking source then target
+      let weaveActive = false;
+      let selectedNode = null;
+      const weaveCheckbox = document.getElementById("weaveMode");
+      weaveCheckbox.addEventListener("change", (e) => {
+        weaveActive = e.target.checked;
+        selectedNode = null;
+        nodeSel.attr("opacity", 1).attr("stroke-width", 2);
+      });
+
+      function nodeClick(event, d) {
+        if (!weaveActive) return;
+        if (!selectedNode) {
+          selectedNode = d;
+          nodeSel.attr("opacity", n => n === d ? 1 : 0.5);
+          d3.select(this).attr("stroke-width", 4);
+        } else if (selectedNode && selectedNode !== d) {
+          // create link if not exists
+          const exists = links.some(l => (l.source.id || l.source) === selectedNode.id && (l.target.id || l.target) === d.id || (l.source.id || l.source) === d.id && (l.target.id || l.target) === selectedNode.id);
+          if (!exists) {
+            links.push({ source: selectedNode.id, target: d.id });
+            linkSel = gLinks.selectAll("line").data(links).join("line")
+              .attr("stroke", "rgba(255,255,255,.28)")
+              .attr("stroke-width", 2)
+              .attr("stroke-dasharray", "5 6");
+            simulation.force("link").links(links);
+            simulation.alpha(0.7).restart();
+          }
+          nodeSel.attr("opacity", 1).attr("stroke-width", 2);
+          selectedNode = null;
+        } else {
+          // clicked same node -> cancel
+          nodeSel.attr("opacity", 1).attr("stroke-width", 2);
+          selectedNode = null;
+        }
+      }
+
+      // Search filter
+      const searchInput = document.getElementById("searchInput");
+      searchInput.addEventListener("input", (e) => {
+        const q = e.target.value.trim().toLowerCase();
+        if (!q) {
+          nodeSel.attr("opacity", 1);
+          linkSel.attr("opacity", 1);
+          labelSel.style("opacity", .9);
+          return;
+        }
+        nodeSel.attr("opacity", d => d.id.toLowerCase().includes(q) ? 1 : 0.15);
+        labelSel.style("opacity", d => d.id.toLowerCase().includes(q) ? 1 : 0.15);
+        const visibleIds = new Set(nodes.filter(n => n.id.toLowerCase().includes(q)).map(n => n.id));
+        linkSel.attr("opacity", l => visibleIds.has(l.source.id || l.source) || visibleIds.has(l.target.id || l.target) ? 1 : 0.1);
+      });
+
+      // Mode toggles (both groups)
+      function setMode(mode) {
+        currentMode = mode;
+        updateForMode(mode);
+        // UI update
+        document.querySelectorAll('[data-mode]').forEach(btn => {
+          if (btn.classList.contains("segment")) {
+            btn.classList.toggle("active", btn.getAttribute("data-mode") === mode);
+          }
+        });
+      }
+      document.getElementById("modeSwitch").addEventListener("click", (e) => {
+        const btn = e.target.closest(".segment[data-mode]");
+        if (!btn) return;
+        setMode(btn.getAttribute("data-mode"));
+      });
+      // mirror top segmented control
+      document.querySelectorAll(".section-header .segment").forEach(btn => {
+        btn.addEventListener("click", () => setMode(btn.getAttribute("data-mode")));
+      });
+
+      // Resize handling
+      function resize() {
+        width = wrap.clientWidth;
+        height = wrap.clientHeight;
+        svg.attr("viewBox", [0,0,width,height]);
+        if (simulation) {
+          simulation.force("center", d3.forceCenter(width / 2, height / 2));
+          simulation.alpha(0.4).restart();
+        }
+      }
+      window.addEventListener("resize", resize);
+
+      resize();
+      initSim();
+    })();
+  </script>
+</body>
+</html>
