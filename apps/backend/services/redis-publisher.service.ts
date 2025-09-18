@@ -1,19 +1,38 @@
-import Redis from 'ioredis'
-
 /**
  * Redis Publisher Service
  * Publishes events from Motia to Redis for the SSE server to consume
+ * Falls back to no-op if Redis is not available
  */
+
+// Try to import ioredis, but make it optional
+let Redis: any = null
+try {
+  Redis = require('ioredis')
+} catch (error) {
+  console.log('[RedisPublisher] ioredis not found - Redis publishing will be disabled')
+}
+
 class RedisPublisher {
-  private publisher: Redis | null = null
+  private publisher: any = null
   private isConnected = false
   private connectionPromise: Promise<void> | null = null
+  private redisEnabled = false
 
   constructor() {
-    // Initialize connection lazily
+    // Check if Redis is available
+    this.redisEnabled = !!Redis && (
+      !!process.env.REDIS_HOST ||
+      !!process.env.REDIS_URL ||
+      process.env.ENABLE_REDIS === 'true'
+    )
+
+    if (!this.redisEnabled) {
+      console.log('[RedisPublisher] Redis is disabled - using no-op implementation')
+    }
   }
 
   private async connect(): Promise<void> {
+    if (!this.redisEnabled) return
     if (this.isConnected) return
     if (this.connectionPromise) return this.connectionPromise
 
@@ -22,6 +41,10 @@ class RedisPublisher {
   }
 
   private async doConnect(): Promise<void> {
+    if (!this.redisEnabled || !Redis) {
+      return
+    }
+
     try {
       const redisOptions = {
         host: process.env.REDIS_HOST || 'localhost',
@@ -44,7 +67,7 @@ class RedisPublisher {
           resolve()
         })
 
-        this.publisher!.once('error', (err) => {
+        this.publisher!.once('error', (err: any) => {
           console.error('[RedisPublisher] Connection error:', err)
           reject(err)
         })
@@ -59,6 +82,7 @@ class RedisPublisher {
       this.publisher = null
       this.isConnected = false
       this.connectionPromise = null
+      this.redisEnabled = false
       // Don't throw - allow the system to work without Redis
     }
   }
@@ -117,6 +141,11 @@ class RedisPublisher {
    * Publish a message to Redis
    */
   private async publish(channel: string, message: any): Promise<void> {
+    // If Redis is disabled, silently skip
+    if (!this.redisEnabled) {
+      return
+    }
+
     try {
       // Try to connect if not connected
       if (!this.isConnected) {
