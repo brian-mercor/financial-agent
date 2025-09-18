@@ -1,0 +1,20 @@
+name: Test Deployment
+
+on:
+  workflow_dispatch:
+
+env:
+  AZURE_WEBAPP_NAME_BACKEND: finagent-backend-pps457j4wjrc6
+  NODE_VERSION: '20.x'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Test Echo
+      run: |
+        echo "Test workflow running successfully"
+        echo "Would deploy to: ${{ env.AZURE_WEBAPP_NAME_BACKEND }}"
