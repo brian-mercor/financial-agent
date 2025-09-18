@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import SmartChatInterface from '../components/SmartChatInterface'
+import { SmartChatInterface } from '../components/SmartChatInterface'
 
 function DashboardPage() {
   const navigate = useNavigate()

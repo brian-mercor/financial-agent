@@ -27,80 +27,106 @@ export function SmartChatInterface({ assistant }) {
       id: Date.now().toString(),
       role: 'user',
       content: input,
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
     }
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
     setIsLoading(true)
 
+    // Create assistant message placeholder for streaming
+    const assistantMessageId = (Date.now() + 1).toString()
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      isStreaming: true,
+    }
+    setMessages(prev => [...prev, assistantMessage])
+
     try {
-      let assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-        isStreaming: true
-      }
+      const history = messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
 
-      setMessages(prev => [...prev, assistantMessage])
+      let fullContent = ''
+      let chartHtml = null
+      let hasChart = false
 
-      await apiService.streamMessage(
-        input,
-        assistant.id,
-        { history: messages },
+      // Use streaming API with enhanced chunk handling
+      const response = await apiService.streamMessage(
+        userMessage.content,
+        assistant.id || 'general',
+        messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
         (chunk) => {
-          if (chunk.content) {
-            assistantMessage.content += chunk.content
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullContent += chunk
             setMessages(prev => prev.map(msg =>
-              msg.id === assistantMessage.id
-                ? { ...assistantMessage }
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullContent }
                 : msg
             ))
-          }
-          if (chunk.chartHtml) {
-            assistantMessage.chartHtml = chunk.chartHtml
-            assistantMessage.hasChart = true
-            setMessages(prev => prev.map(msg =>
-              msg.id === assistantMessage.id
-                ? { ...assistantMessage }
-                : msg
-            ))
+          } else if (chunk && typeof chunk === 'object') {
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullContent += chunk.chunk
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: fullContent }
+                  : msg
+              ))
+            } else if (chunk.type === 'complete') {
+              // Handle complete response with chart
+              if (chunk.chartHtml) {
+                chartHtml = chunk.chartHtml
+                hasChart = true
+              }
+              if (chunk.response) {
+                fullContent = chunk.response
+              }
+            }
           }
         }
       )
 
-      assistantMessage.isStreaming = false
+      // Final update with complete response and chart
       setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessage.id
-          ? { ...assistantMessage }
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+              chartHtml: chartHtml || response?.chartHtml,
+              hasChart: hasChart || response?.hasChart,
+              isStreaming: false
+            }
           : msg
       ))
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: 'Sorry, I encountered an error. Please try again.',
+              isStreaming: false
+            }
+          : msg
+      ))
     } finally {
       setIsLoading(false)
     }
   }, [input, isLoading, assistant.id, messages])
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Messages Area */}
+    <div className="flex flex-col h-full bg-gray-50">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.length === 0 && (
-          <div className="text-center py-12">
-            <div className="graffiti-tag street-art-text text-3xl mb-4">Ready to Trade</div>
-            <p className="text-gray-400">Ask {assistant.name} anything about markets, trading, or your portfolio</p>
-          </div>
-        )}
-
         {messages.map((message) => (
           <div
             key={message.id}
@@ -109,27 +135,28 @@ export function SmartChatInterface({ assistant }) {
             <div
               className={`max-w-3xl ${
                 message.role === 'user'
-                  ? 'interactive-btn text-black'
-                  : 'luxury-card'
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                  : 'bg-white shadow-md'
               } rounded-2xl px-6 py-4`}
             >
               <div className="flex items-start gap-3">
                 {message.role === 'assistant' && (
-                  <div className="feature-icon" style={{ width: '30px', height: '30px' }}>
-                    <Sparkles className="h-4 w-4 text-black" />
-                  </div>
+                  <Sparkles className="h-5 w-5 text-purple-500 flex-shrink-0 mt-1" />
                 )}
                 <div className="flex-1">
                   {message.role === 'user' ? (
-                    <p className="whitespace-pre-wrap font-medium">{message.content}</p>
+                    <p className="whitespace-pre-wrap">{message.content}</p>
                   ) : (
                     <>
-                      <div className="prose prose-invert max-w-none">
+                      <div className="prose prose-sm max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {message.content}
+                          {message.content || (message.isStreaming ? '...' : '')}
                         </ReactMarkdown>
+                        {message.isStreaming && (
+                          <span className="inline-block ml-1 animate-pulse">▊</span>
+                        )}
                       </div>
-                      {message.chartHtml && (
+                      {message.chartHtml && !message.isStreaming && (
                         <div className="mt-4">
                           <ChartRenderer
                             chartHtml={message.chartHtml}
@@ -147,43 +174,29 @@ export function SmartChatInterface({ assistant }) {
             </div>
           </div>
         ))}
-
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="luxury-card rounded-2xl px-6 py-4">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />
-                <span className="text-gray-400">Analyzing markets...</span>
-              </div>
-            </div>
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-yellow-500/20 p-4">
+      <div className="border-t bg-white p-4">
         <form onSubmit={handleSubmit} className="flex gap-3">
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={`Ask ${assistant.name} about markets, trading, or your portfolio...`}
-            className="flex-1 px-4 py-3 bg-black/50 border border-gray-600 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-transparent text-white placeholder-gray-500"
+            placeholder={`Ask ${assistant.name} anything...`}
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             disabled={isLoading}
           />
-          <div className="ornate-border rounded-xl">
-            <button
-              type="submit"
-              disabled={!input.trim() || isLoading}
-              className="interactive-btn px-6 py-3 rounded-xl font-semibold disabled:opacity-50 flex items-center"
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <Send className="h-5 w-5" />
-              )}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={!input.trim() || isLoading}
+            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Send className="h-5 w-5" />
+            )}
+          </button>
         </form>
       </div>
     </div>

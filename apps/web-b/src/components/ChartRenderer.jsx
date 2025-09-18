@@ -27,30 +27,79 @@ export function ChartRenderer({ chartHtml, symbol, height = '500px' }) {
       containerRef.current.appendChild(chartContainer)
 
       const scripts = chartContainer.getElementsByTagName('script')
-      Array.from(scripts).forEach(script => {
-        if (script.src) {
-          const newScript = document.createElement('script')
-          newScript.src = script.src
-          newScript.async = true
-          newScript.onload = () => setIsLoading(false)
-          newScript.onerror = () => {
-            setError('Failed to load TradingView library')
-            setIsLoading(false)
-          }
-          document.head.appendChild(newScript)
-        } else {
+      const scriptArray = Array.from(scripts)
+
+      // Separate external scripts from inline scripts
+      const externalScripts = scriptArray.filter(s => s.src)
+      const inlineScripts = scriptArray.filter(s => !s.src)
+
+      // Load external scripts first
+      let scriptsToLoad = externalScripts.length
+
+      if (scriptsToLoad === 0) {
+        // No external scripts, execute inline scripts immediately
+        inlineScripts.forEach(script => {
           try {
             const newScript = document.createElement('script')
             newScript.textContent = script.textContent
             document.head.appendChild(newScript)
-            setIsLoading(false)
           } catch (err) {
             console.error('Error executing chart script:', err)
             setError('Failed to render chart')
-            setIsLoading(false)
           }
-        }
-      })
+        })
+        setIsLoading(false)
+      } else {
+        // Load external scripts first
+        externalScripts.forEach(script => {
+          // Check if TradingView is already loaded
+          if (script.src.includes('tv.js') && window.TradingView) {
+            scriptsToLoad--
+            if (scriptsToLoad === 0) {
+              // All external scripts loaded, execute inline scripts
+              setTimeout(() => {
+                inlineScripts.forEach(inlineScript => {
+                  try {
+                    const newScript = document.createElement('script')
+                    newScript.textContent = inlineScript.textContent
+                    document.head.appendChild(newScript)
+                  } catch (err) {
+                    console.error('Error executing chart script:', err)
+                  }
+                })
+                setIsLoading(false)
+              }, 100) // Small delay to ensure TradingView is fully initialized
+            }
+          } else {
+            const newScript = document.createElement('script')
+            newScript.src = script.src
+            newScript.async = true
+            newScript.onload = () => {
+              scriptsToLoad--
+              if (scriptsToLoad === 0) {
+                // All external scripts loaded, execute inline scripts
+                setTimeout(() => {
+                  inlineScripts.forEach(inlineScript => {
+                    try {
+                      const newInlineScript = document.createElement('script')
+                      newInlineScript.textContent = inlineScript.textContent
+                      document.head.appendChild(newInlineScript)
+                    } catch (err) {
+                      console.error('Error executing chart script:', err)
+                    }
+                  })
+                  setIsLoading(false)
+                }, 100) // Small delay to ensure TradingView is fully initialized
+              }
+            }
+            newScript.onerror = () => {
+              setError('Failed to load TradingView library')
+              setIsLoading(false)
+            }
+            document.head.appendChild(newScript)
+          }
+        })
+      }
 
       const timeout = setTimeout(() => setIsLoading(false), 3000)
       return () => clearTimeout(timeout)

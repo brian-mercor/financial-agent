@@ -20,18 +20,23 @@ export const config: ApiRouteConfig = {
   name: 'GetChatHistory',
   method: 'GET',
   path: '/api/chat/sessions',
-  query: z.object({
-    userId: z.string(),
-    limit: z.string().optional().transform(val => val ? parseInt(val) : 20),
-    offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
-    archived: z.string().optional().transform(val => val === 'true'),
-  }),
   emits: [],
 };
 
 export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
   try {
-    const { userId, limit, offset, archived } = req.query;
+    // Manually parse and validate query parameters
+    const userId = req.query.userId as string;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const archived = req.query.archived === 'true';
+
+    if (!userId) {
+      return {
+        status: 400,
+        body: { error: 'userId is required' }
+      };
+    }
     
     logger.info('Fetching chat history', { userId, limit, offset, archived });
 

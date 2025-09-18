@@ -3,19 +3,26 @@ set -e
 echo "Starting Motia backend application..."
 cd /home/site/wwwroot
 
-# Check if .motia directory exists
-if [ ! -d ".motia" ]; then
-    echo "Initializing Motia..."
-    npx motia install
+# Check for node_modules
+if [ ! -d "node_modules" ]; then
+    echo "ERROR: node_modules not found - running npm install..."
+    npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+    npm run postinstall
 fi
 
-# Set CORS origins for Vercel deployments if not already set
-if [ -z "$ALLOWED_ORIGINS" ]; then
-    export ALLOWED_ORIGINS="https://*.vercel.app,https://*.vercel.app,http://localhost:3000,http://localhost:3001"
+# Check for .motia directory
+if [ ! -d ".motia" ]; then
+    echo "ERROR: .motia directory not found - running postinstall"
+    npm run postinstall || echo "Failed to run postinstall"
+fi
+
+# Build if not already built
+if [ ! -f ".motia/build.json" ]; then
+    echo "Building Motia application..."
+    npx motia build || echo "Build may have failed, attempting to start anyway"
 fi
 
 # Start application
 echo "Starting Motia on port ${PORT:-3001}..."
-echo "CORS allowed origins: ${ALLOWED_ORIGINS}"
 export NODE_OPTIONS="--max-old-space-size=2048"
-PORT=${PORT:-3001} npx motia start --host 0.0.0.0
+exec PORT=${PORT:-3001} npx motia start --host 0.0.0.0

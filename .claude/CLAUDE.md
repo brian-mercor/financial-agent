@@ -2,6 +2,8 @@
 
 You are helping develop a **Motia project** - a unified backend framework that uses event-driven architecture with multiple programming languages.
 
+> **Documentation Source**: This documentation is based on the official Motia documentation at https://motia.dev and has been updated to reflect the framework's native streaming capabilities and best practices.
+
 ## 🚫 CRITICAL SECURITY RULES
 
 ### NO DUMMY KEYS OR FALLBACK CREDENTIALS
@@ -349,28 +351,116 @@ def generate_html_template(data)
 end
 ```
 
-## ⚠️ CRITICAL: Motia Streaming Limitations
+## 🚀 Motia Streaming Capabilities
 
-### What Does NOT Work
-- **ReadableStream from API handlers**: Motia converts ReadableStream objects to `{}` - SSE/streaming responses are NOT supported
-- **Stream step type**: The `type: 'stream'` configuration is not recognized
-- **WebSocket streams context**: The `streams` context in handlers appears broken/unimplemented
+Motia natively supports real-time streaming as a core feature, providing WebSocket-based streams for live data flow from backend to client applications.
 
-### Confirmed After Extensive Testing
-1. API handlers returning `ReadableStream` with SSE headers → Returns empty object `{}`
-2. WebSocket stream context (`streams.set()`) → Throws "not a function" errors
-3. Any attempt at real-time streaming from Motia steps → Not supported
+### How Motia Streams Work
 
-### Recommended Approach for Real-time Features
-- **Use polling**: Return workflow/session IDs and poll status endpoints
-- **External streaming server**: Run separate Express/Fastify server for SSE/WebSocket
-- **State-based updates**: Store updates in Motia state, retrieve via API calls
+1. **Stream Configuration**: Define stream schemas in `steps/streams/*.stream.ts`
+2. **WebSocket Endpoints**: Motia exposes streams at `ws://host:port/streams/{streamName}/{streamId}`
+3. **Stream Context**: Use `streams` context in handlers to push data to connected clients
+4. **Client Libraries**: Motia provides client packages (`@motiadev/stream-client-browser`, `@motiadev/stream-client-react`)
+
+### Stream Implementation Pattern
+
+#### 1. Define Stream Schema
+```typescript
+// steps/streams/chat-messages.stream.ts
+import { StreamConfig } from 'motia'
+import { z } from 'zod'
+
+export const chatMessageSchema = z.object({
+  id: z.string(),
+  type: z.enum(['token', 'complete', 'error']),
+  userId: z.string(),
+  traceId: z.string(),
+  content: z.string().optional(),
+  timestamp: z.string(),
+})
+
+export const config: StreamConfig = {
+  name: 'chat-messages',
+  schema: chatMessageSchema,
+  baseConfig: {
+    storageType: 'default',
+    ttl: 3600, // 1 hour
+    maxItems: 100, // Keep last 100 messages per stream
+  },
+}
+```
+
+#### 2. Push Data to Streams
+```typescript
+// In any step handler
+export const handler: Handlers['YourStep'] = async (req, { streams, logger }) => {
+  // Push data to a specific stream
+  await streams['chat-messages'].set(
+    `user:${userId}`,  // Stream ID
+    messageId,          // Message ID
+    {
+      id: messageId,
+      type: 'token',
+      userId,
+      traceId,
+      content: token,
+      timestamp: new Date().toISOString(),
+    }
+  )
+}
+```
+
+#### 3. Client Connection
+```javascript
+// Frontend WebSocket connection
+const ws = new WebSocket('ws://localhost:3000/streams/chat-messages/user:123')
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data)
+  // Handle streaming data
+}
+```
 
 ### What DOES Work
-- Event-driven architecture with `emit()` and `subscribes`
-- Multi-step workflows via event chains
-- State management for storing progress/results
-- Standard REST API responses
+- **Native WebSocket Streams**: Real-time bidirectional communication via `streams` context
+- **Event-driven architecture**: With `emit()` and `subscribes`
+- **Multi-step workflows**: Via event chains
+- **State management**: For storing progress/results
+- **Stream-based real-time updates**: Push notifications, live chat, collaborative features
+
+### What Does NOT Work
+- **ReadableStream from API handlers**: API routes must return JSON, not ReadableStream objects
+- **Server-Sent Events (SSE)**: Use WebSocket streams instead
+- **Direct HTTP streaming**: Use Motia's WebSocket streams for real-time data
+
+### Best Practices for Streaming
+
+1. **Use Motia Streams for Real-time Features**
+   - Chat applications with live message streaming
+   - Real-time notifications and updates
+   - Collaborative editing and live synchronization
+   - Dashboard with live metrics
+
+2. **Fallback Strategies**
+   - Implement polling as fallback if WebSocket connection fails
+   - Store state for recovery after disconnections
+   - Use event-driven updates for non-real-time features
+
+3. **Stream Management**
+   - Clean up old stream data with TTL settings
+   - Limit stream size with maxItems configuration
+   - Use stream IDs to segment data (e.g., `user:${userId}`, `room:${roomId}`)
+
+### Implementation in This Project
+
+The chat streaming feature uses Motia's native streams:
+
+1. **Backend**: `steps/chat-stream.step.ts` publishes tokens to `streams['chat-messages']`
+2. **Stream Config**: `steps/streams/chat-messages.stream.ts` defines the schema
+3. **Frontend**: `src/services/motia-stream-client.js` connects via WebSocket
+4. **API Service**: Falls back to polling if WebSocket fails
+
+This approach leverages Motia's built-in streaming without requiring external SSE servers or additional infrastructure.
 
 ## Development Commands
 

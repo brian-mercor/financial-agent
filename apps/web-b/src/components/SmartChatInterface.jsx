@@ -3,7 +3,8 @@ import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChartRenderer } from './ChartRenderer'
-import { apiService } from '../services/api.service'
+// Using default import for apiService
+import apiService from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
@@ -34,6 +35,17 @@ export function SmartChatInterface({ assistant }) {
     setInput('')
     setIsLoading(true)
 
+    // Create assistant message placeholder for streaming
+    const assistantMessageId = (Date.now() + 1).toString()
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      isStreaming: true,
+    }
+    setMessages(prev => [...prev, assistantMessage])
+
     try {
       const history = messages.map(msg => ({
         id: msg.id,
@@ -42,31 +54,72 @@ export function SmartChatInterface({ assistant }) {
         timestamp: msg.timestamp
       }))
 
-      const response = await apiService.sendMessage(
-        input,
-        assistant.id,
-        { history }
+      let fullContent = ''
+      let chartHtml = null
+      let hasChart = false
+
+      // Use streaming API with enhanced chunk handling
+      const response = await apiService.streamMessage(
+        userMessage.content,
+        assistant.id || 'general',
+        messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        (chunk) => {
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullContent += chunk
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullContent }
+                : msg
+            ))
+          } else if (chunk && typeof chunk === 'object') {
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullContent += chunk.chunk
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: fullContent }
+                  : msg
+              ))
+            } else if (chunk.type === 'complete') {
+              // Handle complete response with chart
+              if (chunk.chartHtml) {
+                chartHtml = chunk.chartHtml
+                hasChart = true
+              }
+              if (chunk.response) {
+                fullContent = chunk.response
+              }
+            }
+          }
+        }
       )
 
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.response || response.message || response.content,
-        timestamp: new Date().toISOString(),
-        chartHtml: response.chartHtml,
-        hasChart: response.hasChart,
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
+      // Final update with complete response and chart
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+              chartHtml: chartHtml || response?.chartHtml,
+              hasChart: hasChart || response?.hasChart,
+              isStreaming: false
+            }
+          : msg
+      ))
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: 'Sorry, I encountered an error. Please try again.',
+              isStreaming: false
+            }
+          : msg
+      ))
     } finally {
       setIsLoading(false)
     }
@@ -98,10 +151,13 @@ export function SmartChatInterface({ assistant }) {
                     <>
                       <div className="prose prose-sm max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {message.content}
+                          {message.content || (message.isStreaming ? '...' : '')}
                         </ReactMarkdown>
+                        {message.isStreaming && (
+                          <span className="inline-block ml-1 animate-pulse">▊</span>
+                        )}
                       </div>
-                      {message.chartHtml && (
+                      {message.chartHtml && !message.isStreaming && (
                         <div className="mt-4">
                           <ChartRenderer
                             chartHtml={message.chartHtml}
@@ -119,16 +175,6 @@ export function SmartChatInterface({ assistant }) {
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white shadow-md rounded-2xl px-6 py-4">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-                <span className="text-gray-500">Thinking...</span>
-              </div>
-            </div>
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 

@@ -1,8 +1,13 @@
 import type { ApiRouteConfig, Handlers } from 'motia'
 import { z } from 'zod'
+import * as dotenv from 'dotenv'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
 import { agentPrompts } from '../src/mastra/config'
+import { redisPublisher } from '../services/redis-publisher.service'
+
+// Load environment variables
+dotenv.config()
 
 // Inline chart functions to avoid import issues
 function extractSymbolFromQuery(query: string): string | null {
@@ -71,15 +76,12 @@ function isChartRequest(message: string): boolean {
   }
 
   // Check for explicit chart requests
-  const explicitChartKeywords = ['chart', 'graph', 'show me', 'display', 'view'];
+  const explicitChartKeywords = ['chart', 'graph', 'show me', 'display', 'view', 'plot', 'visualize'];
   const hasExplicitRequest = explicitChartKeywords.some(keyword => lowerMessage.includes(keyword));
 
-  // Check for trading context keywords
-  const tradingKeywords = ['price', 'stock', 'ticker', 'trading', 'candle', 'technical analysis'];
-  const hasTradingContext = tradingKeywords.some(keyword => lowerMessage.includes(keyword));
-
-  // Must have either explicit chart request OR trading context with a symbol
-  return hasExplicitRequest || (hasTradingContext && extractSymbolFromQuery(message) !== null);
+  // For a chart request, we need an EXPLICIT request
+  // Simply mentioning a ticker shouldn't auto-generate a chart
+  return hasExplicitRequest && extractSymbolFromQuery(message) !== null;
 }
 
 function generateTradingViewChart(config: { symbol: string; theme?: string; height?: number; interval?: string }): string {
@@ -183,7 +185,7 @@ export const config: ApiRouteConfig = {
   ],
 }
 
-export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, traceId }: any) => {
+export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, streams, traceId }: any) => {
   const {
     message,
     assistantType = 'general',
@@ -313,16 +315,77 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
       })
 
       try {
-        // Initialize LLM service
-        const llmService = new LLMService()
+        // Initialize LLM service with streaming callbacks if requested
+        const llmService = stream
+          ? new LLMService({
+              streamCallback: async (token, metadata) => {
+                // Use Motia's native streams instead of Redis
+                if (streams && streams['chat-messages']) {
+                  const messageId = `${traceId}-${Date.now()}`
+                  await streams['chat-messages'].set(
+                    `user:${userId}`,
+                    messageId,
+                    {
+                      id: messageId,
+                      type: 'token',
+                      userId,
+                      traceId,
+                      content: token,
+                      metadata,
+                      timestamp: new Date().toISOString(),
+                    }
+                  )
+                }
+                // Also publish to Redis for backward compatibility
+                await redisPublisher.publishChatStream(
+                  userId,
+                  traceId,
+                  'token',
+                  { content: token, ...metadata }
+                )
+              },
+              providerSwitchCallback: async (from, to, reason) => {
+                // Use Motia's native streams
+                if (streams && streams['chat-messages']) {
+                  const messageId = `${traceId}-switch-${Date.now()}`
+                  await streams['chat-messages'].set(
+                    `user:${userId}`,
+                    messageId,
+                    {
+                      id: messageId,
+                      type: 'provider_switch',
+                      userId,
+                      traceId,
+                      metadata: { from, to, reason },
+                      timestamp: new Date().toISOString(),
+                    }
+                  )
+                }
+                // Also publish to Redis for backward compatibility
+                await redisPublisher.publishChatStream(
+                  userId,
+                  traceId,
+                  'provider_switch',
+                  { from, to, reason }
+                )
+              },
+            })
+          : new LLMService()
 
-        // Process message with history (without streaming since Motia doesn't support it)
-        const response = await llmService.process(
-          message,
-          assistantType,
-          { traceId, userId },
-          history // Pass conversation history to LLM
-        )
+        // Process message with appropriate method based on stream flag
+        const response = stream
+          ? await llmService.processWithStreaming(
+              message,
+              assistantType,
+              { traceId, userId },
+              history // Pass conversation history to LLM
+            )
+          : await llmService.process(
+              message,
+              assistantType,
+              { traceId, userId },
+              history // Pass conversation history to LLM
+            )
 
         // Store complete response in state
         await state.set('chats', traceId, {
@@ -335,25 +398,17 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
           timestamp: new Date().toISOString(),
         })
 
-        // Emit completion event
-        await emit({
-          topic: 'chat.completed',
-          data: {
-            traceId,
-            userId,
-            response: response.content,
-            provider: response.provider,
-            model: response.model,
-          },
-        })
-
         // Check if LLM response mentions a symbol and add chart if appropriate
+        // Only add chart if the response explicitly suggests viewing a chart
         const symbolInResponse = extractSymbolFromQuery(response.content)
         let chartHtml = null
-        
-        if (symbolInResponse && (response.content.toLowerCase().includes('chart') || 
-                                 response.content.toLowerCase().includes('price') || 
-                                 response.content.toLowerCase().includes('stock'))) {
+
+        const responseIndicatesChart = response.content.toLowerCase().includes('chart') ||
+                                      response.content.toLowerCase().includes('view the') ||
+                                      response.content.toLowerCase().includes('here\'s') ||
+                                      response.content.toLowerCase().includes('here is')
+
+        if (symbolInResponse && responseIndicatesChart) {
           try {
             chartHtml = await generateTradingViewChart({
               symbol: symbolInResponse,
@@ -361,7 +416,7 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
               height: 500,
               interval: '1D',
             })
-            
+
             await emit({
               topic: 'chart.requested',
               data: {
@@ -372,12 +427,48 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
               },
             })
           } catch (chartError) {
-            logger.warn('Failed to generate chart for detected symbol', { 
-              symbol: symbolInResponse, 
-              error: chartError 
+            logger.warn('Failed to generate chart for detected symbol', {
+              symbol: symbolInResponse,
+              error: chartError
             })
           }
         }
+
+        // Send completion message via Motia streams (with chart if generated)
+        if (stream && streams && streams['chat-messages']) {
+          const completeMessageId = `${traceId}-complete`
+          await streams['chat-messages'].set(
+            `user:${userId}`,
+            completeMessageId,
+            {
+              id: completeMessageId,
+              type: 'complete',
+              userId,
+              traceId,
+              response: response.content,
+              provider: response.provider,
+              model: response.model,
+              chartHtml: chartHtml || undefined,
+              symbol: symbolInResponse || undefined,
+              hasChart: !!chartHtml,
+              timestamp: new Date().toISOString(),
+            }
+          )
+        }
+
+        // Emit completion event
+        await emit({
+          topic: 'chat.completed',
+          data: {
+            traceId,
+            userId,
+            response: response.content,
+            provider: response.provider,
+            model: response.model,
+            chartHtml: chartHtml || undefined,
+            hasChart: !!chartHtml,
+          },
+        })
 
         // Return JSON response with optional chart
         return {
