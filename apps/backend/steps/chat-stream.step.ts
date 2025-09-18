@@ -1,9 +1,13 @@
 import type { ApiRouteConfig, Handlers } from 'motia'
 import { z } from 'zod'
+import * as dotenv from 'dotenv'
 import { LLMService } from '../services/llm-service'
 import { WorkflowDetector } from '../services/workflow-detector'
 import { agentPrompts } from '../src/mastra/config'
 import { redisPublisher } from '../services/redis-publisher.service'
+
+// Load environment variables
+dotenv.config()
 
 // Inline chart functions to avoid import issues
 function extractSymbolFromQuery(query: string): string | null {

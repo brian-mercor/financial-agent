@@ -1,5 +1,9 @@
 import { Groq } from 'groq-sdk';
 import OpenAI from 'openai';
+import * as dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 interface LLMServiceConfig {
   streamCallback?: (token: string, metadata?: any) => Promise<void>;
@@ -25,26 +29,59 @@ export class LLMService {
   }
 
   private initializeClients() {
+    console.log('[LLMService] Initializing LLM clients', {
+      hasGroqKey: !!process.env.GROQ_API_KEY,
+      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+      hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
+      hasAzureEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT,
+      azureDeployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT
+    });
+
     // Initialize Groq client
     if (process.env.GROQ_API_KEY) {
-      this.groqClient = new Groq({
-        apiKey: process.env.GROQ_API_KEY,
-      });
+      try {
+        this.groqClient = new Groq({
+          apiKey: process.env.GROQ_API_KEY,
+        });
+        console.log('[LLMService] Groq client initialized');
+      } catch (error) {
+        console.error('[LLMService] Failed to initialize Groq client:', error);
+      }
     }
 
     // Initialize OpenAI client
     if (process.env.OPENAI_API_KEY) {
-      this.openaiClient = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
+      try {
+        this.openaiClient = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+        console.log('[LLMService] OpenAI client initialized');
+      } catch (error) {
+        console.error('[LLMService] Failed to initialize OpenAI client:', error);
+      }
     }
 
     // Initialize Azure OpenAI client
     if (process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
+      // For model-router, we don't include the deployment name in the URL
+      const deploymentName = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'model-router';
+      const isModelRouter = deploymentName.includes('model-router');
+
+      const baseURL = isModelRouter
+        ? `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/model-router`
+        : `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${deploymentName}`;
+
+      console.log('[LLMService] Initializing Azure OpenAI client', {
+        endpoint: process.env.AZURE_OPENAI_ENDPOINT,
+        deploymentName,
+        isModelRouter,
+        baseURL
+      });
+
       this.azureClient = new OpenAI({
         apiKey: process.env.AZURE_OPENAI_API_KEY,
-        baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT}`,
-        defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-02-01' },
+        baseURL,
+        defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview' },
         defaultHeaders: {
           'api-key': process.env.AZURE_OPENAI_API_KEY,
         },
@@ -186,11 +223,37 @@ export class LLMService {
     messages.push({ role: 'user', content: message });
 
     // Try Azure first if model-router is configured
-    const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT;
-    if (this.azureClient && azureDeployment && azureDeployment.includes('model-router')) {
+    const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'model-router';
+
+    console.log('[LLMService] Selecting provider for streaming', {
+      hasAzureClient: !!this.azureClient,
+      hasGroqClient: !!this.groqClient,
+      hasOpenAIClient: !!this.openaiClient,
+      azureDeployment,
+      isModelRouter: azureDeployment.includes('model-router')
+    });
+
+    // Check Azure client availability
+    const useAzure = this.azureClient && azureDeployment;
+
+    if (useAzure) {
+      console.log('[LLMService] Azure client is available, attempting to use it');
+    } else {
+      console.log('[LLMService] Azure client not available', {
+        hasClient: !!this.azureClient,
+        deployment: azureDeployment
+      });
+    }
+
+    if (useAzure) {
       try {
         provider = 'azure';
         model = azureDeployment;
+
+        console.log('[LLMService] Using Azure model-router for streaming', {
+          deployment: azureDeployment,
+          messageCount: messages.length
+        });
 
         const stream = await this.azureClient.chat.completions.create({
           messages,
