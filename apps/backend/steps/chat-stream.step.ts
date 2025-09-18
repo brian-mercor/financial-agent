@@ -32,9 +32,20 @@ function extractSymbolFromQuery(query: string): string | null {
     }
   }
 
-  const tickerMatch = query.match(/\b([A-Z]{1,5}(?:\.[A-Z]{1,2})?)\b/);
+  // Only match tickers that are 2-5 letters (exclude single letters like "I")
+  // and make sure they're not common English words
+  const tickerMatch = query.match(/\b([A-Z]{2,5}(?:\.[A-Z]{1,2})?)\b/);
   if (tickerMatch) {
-    return tickerMatch[1];
+    const potentialTicker = tickerMatch[1];
+    // Exclude common English words that might match the pattern
+    const excludedWords = ['BE', 'DO', 'GO', 'IF', 'IN', 'IS', 'IT', 'ME', 'MY',
+                          'NO', 'OF', 'ON', 'OR', 'SO', 'TO', 'UP', 'US', 'WE',
+                          'AND', 'BUT', 'FOR', 'THE', 'YOU', 'ALL', 'CAN', 'HAS',
+                          'HIS', 'HOW', 'ITS', 'MAY', 'NOT', 'OUR', 'OUT', 'SHE',
+                          'WAS', 'WHO', 'WHY', 'YES'];
+    if (!excludedWords.includes(potentialTicker)) {
+      return potentialTicker;
+    }
   }
 
   const cryptoMatch = query.match(/\b(BTC|ETH|SOL|ADA|DOT|AVAX|MATIC|LINK|UNI|AAVE|XRP|BNB|DOGE|SHIB)(?:USD)?\b/i);
@@ -47,14 +58,28 @@ function extractSymbolFromQuery(query: string): string | null {
 }
 
 function isChartRequest(message: string): boolean {
-  const chartKeywords = [
-    'chart', 'graph', 'show', 'display', 'view', 
-    'price', 'stock', 'crypto', 'ticker', 'trading',
-    'candle', 'technical', 'analysis', 'market'
-  ];
-  
   const lowerMessage = message.toLowerCase();
-  return chartKeywords.some(keyword => lowerMessage.includes(keyword));
+
+  // Check for educational/explanatory patterns that should NOT trigger charts
+  const educationalPatterns = [
+    'what is', 'what are', 'explain', 'how does', 'how do',
+    'define', 'definition', 'meaning', 'tell me about', 'describe'
+  ];
+
+  if (educationalPatterns.some(pattern => lowerMessage.includes(pattern))) {
+    return false;
+  }
+
+  // Check for explicit chart requests
+  const explicitChartKeywords = ['chart', 'graph', 'show me', 'display', 'view'];
+  const hasExplicitRequest = explicitChartKeywords.some(keyword => lowerMessage.includes(keyword));
+
+  // Check for trading context keywords
+  const tradingKeywords = ['price', 'stock', 'ticker', 'trading', 'candle', 'technical analysis'];
+  const hasTradingContext = tradingKeywords.some(keyword => lowerMessage.includes(keyword));
+
+  // Must have either explicit chart request OR trading context with a symbol
+  return hasExplicitRequest || (hasTradingContext && extractSymbolFromQuery(message) !== null);
 }
 
 function generateTradingViewChart(config: { symbol: string; theme?: string; height?: number; interval?: string }): string {

@@ -5,6 +5,42 @@ export function ChartRenderer({ chartHtml, symbol, height = '500px' }) {
   const containerRef = useRef(null)
   const [error, setError] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const scriptLoadedRef = useRef(false)
+
+  // Load TradingView script once globally
+  useEffect(() => {
+    if (window.TradingView) {
+      scriptLoadedRef.current = true
+      return
+    }
+
+    // Check if script is already in document
+    const existingScript = document.querySelector('script[src*="tradingview.com/tv.js"]')
+    if (existingScript) {
+      // Wait for it to load
+      existingScript.addEventListener('load', () => {
+        scriptLoadedRef.current = true
+      })
+      return
+    }
+
+    // Load TradingView library
+    const script = document.createElement('script')
+    script.src = 'https://s3.tradingview.com/tv.js'
+    script.async = true
+    script.onload = () => {
+      scriptLoadedRef.current = true
+      console.log('TradingView library loaded')
+    }
+    script.onerror = () => {
+      console.error('Failed to load TradingView library')
+    }
+    document.head.appendChild(script)
+
+    return () => {
+      // Don't remove the script as it might be used by other charts
+    }
+  }, [])
 
   useEffect(() => {
     if (!chartHtml || !containerRef.current) {
@@ -12,60 +48,94 @@ export function ChartRenderer({ chartHtml, symbol, height = '500px' }) {
       return
     }
 
-    try {
-      setIsLoading(true)
-      setError(null)
+    const renderChart = () => {
+      try {
+        setIsLoading(true)
+        setError(null)
 
-      // Clear previous content
-      containerRef.current.innerHTML = ''
+        // Clear previous content
+        containerRef.current.innerHTML = ''
 
-      // Create isolated container for chart
-      const chartContainer = document.createElement('div')
-      chartContainer.style.width = '100%'
-      chartContainer.style.height = height
-      chartContainer.style.position = 'relative'
-      chartContainer.innerHTML = chartHtml
+        // Create isolated container for chart
+        const chartContainer = document.createElement('div')
+        chartContainer.style.width = '100%'
+        chartContainer.style.height = height
+        chartContainer.style.position = 'relative'
 
-      // Append to container
-      containerRef.current.appendChild(chartContainer)
+        // Parse the HTML but don't include script tags yet
+        const tempDiv = document.createElement('div')
+        tempDiv.innerHTML = chartHtml
 
-      // Execute any inline scripts
-      const scripts = chartContainer.getElementsByTagName('script')
-      Array.from(scripts).forEach(script => {
-        if (script.src) {
-          // External script
-          const newScript = document.createElement('script')
-          newScript.src = script.src
-          newScript.async = true
-          newScript.onload = () => setIsLoading(false)
-          newScript.onerror = () => {
-            setError('Failed to load TradingView library')
-            setIsLoading(false)
+        // Extract scripts
+        const scripts = Array.from(tempDiv.getElementsByTagName('script'))
+
+        // Remove script tags from HTML
+        scripts.forEach(script => script.remove())
+
+        // Add the HTML without scripts
+        chartContainer.innerHTML = tempDiv.innerHTML
+        containerRef.current.appendChild(chartContainer)
+
+        // Now execute the inline scripts (external script should already be loaded)
+        scripts.forEach(script => {
+          if (!script.src) {
+            // Only execute inline scripts (widget initialization)
+            try {
+              // Wait a bit to ensure DOM is ready
+              setTimeout(() => {
+                if (window.TradingView) {
+                  // Execute the script in the global context
+                  const scriptContent = script.textContent || script.innerHTML
+                  // Use Function constructor instead of eval for better error handling
+                  const executeScript = new Function(scriptContent)
+                  executeScript()
+                } else {
+                  console.error('TradingView not loaded yet')
+                  setError('TradingView library not loaded. Please refresh.')
+                }
+              }, 100)
+            } catch (err) {
+              console.error('Error executing chart script:', err)
+              setError('Failed to initialize chart')
+            }
           }
-          document.head.appendChild(newScript)
-        } else {
-          // Inline script
-          try {
-            const newScript = document.createElement('script')
-            newScript.textContent = script.textContent
-            document.head.appendChild(newScript)
-            setIsLoading(false)
-          } catch (err) {
-            console.error('Error executing chart script:', err)
-            setError('Failed to render chart')
-            setIsLoading(false)
-          }
+        })
+
+        // Set loading false after scripts execute
+        setTimeout(() => setIsLoading(false), 500)
+
+      } catch (err) {
+        console.error('Error rendering chart:', err)
+        setError('Failed to render chart')
+        setIsLoading(false)
+      }
+    }
+
+    // Check if TradingView is already loaded
+    if (window.TradingView || scriptLoadedRef.current) {
+      renderChart()
+    } else {
+      // Wait for TradingView to load
+      const checkInterval = setInterval(() => {
+        if (window.TradingView) {
+          clearInterval(checkInterval)
+          renderChart()
         }
-      })
+      }, 100)
 
-      // Set loading false after a timeout if scripts don't report back
-      const timeout = setTimeout(() => setIsLoading(false), 3000)
-      return () => clearTimeout(timeout)
+      // Timeout after 5 seconds
+      const timeout = setTimeout(() => {
+        clearInterval(checkInterval)
+        if (!window.TradingView) {
+          setError('TradingView library failed to load')
+          setIsLoading(false)
+        }
+      }, 5000)
 
-    } catch (err) {
-      console.error('Error rendering chart:', err)
-      setError('Failed to render chart')
-      setIsLoading(false)
+      return () => {
+        clearInterval(checkInterval)
+        clearTimeout(timeout)
+      }
     }
   }, [chartHtml, height])
 
@@ -81,6 +151,12 @@ export function ChartRenderer({ chartHtml, symbol, height = '500px' }) {
           <span className="font-medium">Chart Error</span>
         </div>
         <p className="text-red-300 mt-2 text-sm">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-3 px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition-colors"
+        >
+          Refresh Page
+        </button>
       </div>
     )
   }
@@ -100,8 +176,9 @@ export function ChartRenderer({ chartHtml, symbol, height = '500px' }) {
         className="w-full rounded-xl overflow-hidden"
         style={{ minHeight: height }}
       />
-      {symbol && (
-        <div className="mt-2 text-xs text-muted text-center">
+      {symbol && !isLoading && (
+        <div className="mt-2 text-xs text-muted text-center flex items-center justify-center gap-1">
+          <TrendingUp className="w-3 h-3" />
           Interactive chart for {symbol}
         </div>
       )}
