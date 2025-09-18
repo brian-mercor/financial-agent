@@ -3,7 +3,8 @@ import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { ChartRenderer } from './ChartRenderer'
-import { apiService } from '../services/api.service'
+// Using default import for apiService
+import apiService from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])

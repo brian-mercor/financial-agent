@@ -76,15 +76,12 @@ function isChartRequest(message: string): boolean {
   }
 
   // Check for explicit chart requests
-  const explicitChartKeywords = ['chart', 'graph', 'show me', 'display', 'view'];
+  const explicitChartKeywords = ['chart', 'graph', 'show me', 'display', 'view', 'plot', 'visualize'];
   const hasExplicitRequest = explicitChartKeywords.some(keyword => lowerMessage.includes(keyword));
 
-  // Check for trading context keywords
-  const tradingKeywords = ['price', 'stock', 'ticker', 'trading', 'candle', 'technical analysis'];
-  const hasTradingContext = tradingKeywords.some(keyword => lowerMessage.includes(keyword));
-
-  // Must have either explicit chart request OR trading context with a symbol
-  return hasExplicitRequest || (hasTradingContext && extractSymbolFromQuery(message) !== null);
+  // For a chart request, we need an EXPLICIT request
+  // Simply mentioning a ticker shouldn't auto-generate a chart
+  return hasExplicitRequest && extractSymbolFromQuery(message) !== null;
 }
 
 function generateTradingViewChart(config: { symbol: string; theme?: string; height?: number; interval?: string }): string {
@@ -401,7 +398,43 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
           timestamp: new Date().toISOString(),
         })
 
-        // Send completion message via Motia streams
+        // Check if LLM response mentions a symbol and add chart if appropriate
+        // Only add chart if the response explicitly suggests viewing a chart
+        const symbolInResponse = extractSymbolFromQuery(response.content)
+        let chartHtml = null
+
+        const responseIndicatesChart = response.content.toLowerCase().includes('chart') ||
+                                      response.content.toLowerCase().includes('view the') ||
+                                      response.content.toLowerCase().includes('here\'s') ||
+                                      response.content.toLowerCase().includes('here is')
+
+        if (symbolInResponse && responseIndicatesChart) {
+          try {
+            chartHtml = await generateTradingViewChart({
+              symbol: symbolInResponse,
+              theme: 'light',
+              height: 500,
+              interval: '1D',
+            })
+
+            await emit({
+              topic: 'chart.requested',
+              data: {
+                symbol: symbolInResponse,
+                source: 'llm-response',
+                timestamp: new Date().toISOString(),
+                traceId,
+              },
+            })
+          } catch (chartError) {
+            logger.warn('Failed to generate chart for detected symbol', {
+              symbol: symbolInResponse,
+              error: chartError
+            })
+          }
+        }
+
+        // Send completion message via Motia streams (with chart if generated)
         if (stream && streams && streams['chat-messages']) {
           const completeMessageId = `${traceId}-complete`
           await streams['chat-messages'].set(
@@ -415,6 +448,9 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
               response: response.content,
               provider: response.provider,
               model: response.model,
+              chartHtml: chartHtml || undefined,
+              symbol: symbolInResponse || undefined,
+              hasChart: !!chartHtml,
               timestamp: new Date().toISOString(),
             }
           )
@@ -429,40 +465,10 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
             response: response.content,
             provider: response.provider,
             model: response.model,
+            chartHtml: chartHtml || undefined,
+            hasChart: !!chartHtml,
           },
         })
-
-        // Check if LLM response mentions a symbol and add chart if appropriate
-        const symbolInResponse = extractSymbolFromQuery(response.content)
-        let chartHtml = null
-        
-        if (symbolInResponse && (response.content.toLowerCase().includes('chart') || 
-                                 response.content.toLowerCase().includes('price') || 
-                                 response.content.toLowerCase().includes('stock'))) {
-          try {
-            chartHtml = await generateTradingViewChart({
-              symbol: symbolInResponse,
-              theme: 'light',
-              height: 500,
-              interval: '1D',
-            })
-            
-            await emit({
-              topic: 'chart.requested',
-              data: {
-                symbol: symbolInResponse,
-                source: 'llm-response',
-                timestamp: new Date().toISOString(),
-                traceId,
-              },
-            })
-          } catch (chartError) {
-            logger.warn('Failed to generate chart for detected symbol', { 
-              symbol: symbolInResponse, 
-              error: chartError 
-            })
-          }
-        }
 
         // Return JSON response with optional chart
         return {

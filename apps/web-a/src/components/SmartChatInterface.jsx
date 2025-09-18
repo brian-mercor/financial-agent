@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { AgentStatusPanel } from './AgentStatusPanel'
 import { ChartRenderer } from './ChartRenderer'
-import { apiService } from '../services/api.service'
+import apiService from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
