@@ -77,10 +77,19 @@ jobs:
             npm ci --only=production --no-audit --no-fund || npm install --only=production --no-audit --no-fund
         fi
         
-        # Check if Motia is available
+        # CRITICAL: Ensure Motia is installed
+        echo "Checking for Motia..."
+        if [ ! -f "node_modules/.bin/motia" ]; then
+            echo "Motia executable not found in node_modules/.bin"
+            echo "Installing Motia packages..."
+            npm install motia @motia/core @motia/cli --no-audit --no-fund
+        fi
+
+        # Verify Motia is available
         if ! npx motia --version > /dev/null 2>&1; then
-            echo "ERROR: Motia not found, installing..."
-            npm install @motia/core @motia/cli --no-save --no-audit --no-fund
+            echo "ERROR: Motia still not available after install"
+            echo "Attempting global install as fallback..."
+            npm install -g motia
         fi
         
         # Motia should already be built during CI/CD
@@ -101,14 +110,14 @@ jobs:
         
         # Create deployment package INCLUDING node_modules for Motia
         # Also include the built Motia files
+        # IMPORTANT: Do NOT exclude node_modules/.bin as it contains motia executable
         zip -r deploy.zip . \
           -x "*.git*" \
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
           -x ".DS_Store" \
-          -x "node_modules/.cache/*" \
-          -x "node_modules/.bin/*"
+          -x "node_modules/.cache/*"
 
     - name: Configure Backend App Service
       run: |
