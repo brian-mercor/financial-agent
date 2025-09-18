@@ -14,7 +14,7 @@ fi
 # Ensure Motia CLI is available
 if ! command -v motia &> /dev/null && [ ! -f "node_modules/.bin/motia" ]; then
     echo "Installing Motia CLI..."
-    npm install motia @motiadev/cli --no-save --no-audit --no-fund
+    npm install motia --no-save --no-audit --no-fund
 fi
 
 # Check for .motia directory

@@ -24,7 +24,6 @@
     "@azure/keyvault-secrets": "^4.8.0",
     "@mastra/core": "^0.16.2",
     "@mastra/memory": "^0.15.0",
-    "@motiadev/cli": "^0.6.4-beta.130",
     "@polygon.io/client-js": "^8.2.0",
     "@supabase/supabase-js": "^2.45.0",
     "cors": "^2.8.5",

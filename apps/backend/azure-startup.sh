@@ -96,7 +96,7 @@ if ! test_motia; then
     # If Motia still doesn't work, try installing it specifically
     if ! test_motia; then
         echo "Installing Motia packages specifically..."
-        npm install motia @motia/core @motia/cli commander --no-audit --no-fund
+        npm install motia --no-audit --no-fund
     fi
 
     # Final check
@@ -106,7 +106,7 @@ if ! test_motia; then
         ls -la node_modules/.bin/ | head -20
         echo ""
         echo "Attempting to see Motia package info:"
-        npm list motia @motia/core @motia/cli commander 2>&1 | head -20
+        npm list motia 2>&1 | head -20
         exit 1
     fi
 fi
