@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { apiService } from '../services/api.service'
+import { analyzeMessage, getSuggestedQuestions } from '../utils/messageAnalyzer'
+import { ChartRenderer } from '../components/ChartRenderer'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -67,6 +69,10 @@ export default function DashboardPage() {
     e?.preventDefault()
     if (!input.trim() || isLoading) return
 
+    // Analyze the message to determine response type
+    const analysis = analyzeMessage(input)
+    console.log('Message analysis:', analysis)
+
     const userMessage = {
       id: Date.now().toString(),
       role: 'user',
@@ -79,24 +85,87 @@ export default function DashboardPage() {
     setIsLoading(true)
 
     try {
-      const response = await apiService.sendMessage(
-        input,
-        selectedAssistant.id,
-        {
-          history: messages.slice(-10), // Send last 10 messages for context
-          userId: user?.id || `user-${Date.now()}`,
+      // Determine whether to use streaming or not based on analysis
+      if (analysis.shouldStream) {
+        // Streaming path for general chat
+        console.log('Using streaming for response')
+
+        let streamedContent = ''
+        const assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: '',
+          timestamp: new Date(),
+          assistantType: selectedAssistant.id,
+          isStreaming: true,
         }
-      )
 
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.response || response.content || 'I apologize, but I was unable to process your request.',
-        timestamp: new Date(),
-        assistantType: selectedAssistant.id,
+        // Add initial empty message that will be updated
+        setMessages(prev => [...prev, assistantMessage])
+
+        // Stream the response
+        await apiService.streamMessage(
+          input,
+          selectedAssistant.id,
+          {
+            history: messages.slice(-10),
+            userId: user?.id || `user-${Date.now()}`,
+            context: {
+              symbols: analysis.symbol ? [analysis.symbol] : [],
+              timeframe: '1d',
+              riskTolerance: 'moderate'
+            }
+          },
+          (chunk) => {
+            // Handle streaming chunks
+            if (chunk.content) {
+              streamedContent += chunk.content
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, content: streamedContent }
+                  : msg
+              ))
+            }
+          }
+        )
+
+        // Mark streaming as complete
+        setMessages(prev => prev.map(msg =>
+          msg.id === assistantMessage.id
+            ? { ...msg, isStreaming: false }
+            : msg
+        ))
+      } else {
+        // Non-streaming path for chart requests
+        console.log('Using non-streaming for chart/analysis response')
+
+        const response = await apiService.sendMessage(
+          input,
+          selectedAssistant.id,
+          {
+            history: messages.slice(-10),
+            userId: user?.id || `user-${Date.now()}`,
+            context: {
+              symbols: analysis.symbol ? [analysis.symbol] : [],
+              timeframe: '1d',
+              riskTolerance: 'moderate'
+            }
+          }
+        )
+
+        const assistantMessage = {
+          id: (Date.now() + 1).toString(),
+          role: 'assistant',
+          content: response.response || response.content || 'I apologize, but I was unable to process your request.',
+          timestamp: new Date(),
+          assistantType: selectedAssistant.id,
+          chartHtml: response.chartHtml,
+          hasChart: response.hasChart,
+          symbol: response.symbol,
+        }
+
+        setMessages(prev => [...prev, assistantMessage])
       }
-
-      setMessages(prev => [...prev, assistantMessage])
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMessage = {
@@ -274,11 +343,20 @@ export default function DashboardPage() {
                         {message.role === 'user' ? (
                           <p className="text-white whitespace-pre-wrap">{message.content}</p>
                         ) : (
-                          <div className="prose prose-invert max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {message.content}
-                            </ReactMarkdown>
-                          </div>
+                          <>
+                            <div className="prose prose-invert max-w-none">
+                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {message.content}
+                              </ReactMarkdown>
+                            </div>
+                            {message.chartHtml && (
+                              <ChartRenderer
+                                chartHtml={message.chartHtml}
+                                symbol={message.symbol}
+                                height="400px"
+                              />
+                            )}
+                          </>
                         )}
                       </div>
                       {message.role === 'user' && (
