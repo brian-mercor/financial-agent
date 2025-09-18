@@ -8,7 +8,8 @@ import { EventHandler, ApiRouteHandler, ApiResponse, MotiaStream, CronHandler } 
 
 declare module 'motia' {
   interface FlowContextStateStreams {
-    
+    'workflow-updates': MotiaStream<{ id: string; type: 'workflow_update'; workflowId: string; eventType?: string; userId?: string; stepIndex?: number; agent?: string; task?: string; data?: unknown; results?: unknown; message?: string; progress?: number; error?: string; timestamp: string }>
+    'chat-messages': MotiaStream<{ id: string; type: 'token' | 'complete' | 'error' | 'provider_switch' | 'chart' | 'status'; userId: string; traceId: string; content?: string; response?: string; provider?: string; model?: string; chartHtml?: string; error?: string; metadata?: Record<string, unknown>; timestamp: string }>
   }
 
   interface Handlers {
@@ -33,6 +34,8 @@ declare module 'motia' {
     'Notification': EventHandler<{ templateId: string; email: string; templateData: Record<string, unknown> }, never>
     'GetMarketData': ApiRouteHandler<{ symbol: string; dataType: 'quote' | 'historical' | 'options' | 'sentiment' | 'news'; timeframe?: string; startDate?: string; endDate?: string }, unknown, never>
     'HealthCheck': ApiRouteHandler<Record<string, unknown>, unknown, never>
+    'GetChatMessages': ApiRouteHandler<Record<string, unknown>, unknown, never>
+    'GetChatHistory': ApiRouteHandler<Record<string, unknown>, unknown, never>
     'CreateChatSession': ApiRouteHandler<{ userId: string; assistantType?: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; initialMessage?: string }, unknown, never>
     'ChatWithAgent': ApiRouteHandler<{ message: string; assistantType: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; userId: string; sessionId?: string; symbols?: string[] }, unknown, { topic: 'chart.requested'; data: unknown }>
     'ChatWithAgentV2': ApiRouteHandler<{ message: string; assistantType: 'general' | 'analyst' | 'trader' | 'advisor' | 'riskManager' | 'economist'; userId: string; sessionId?: string; symbols?: string[]; provider?: 'groq' | 'azure-openai' | 'openai' | 'auto'; model?: 'gpt-5' | 'gpt-4-turbo' | 'gpt-4' | 'llama-3.3-70b' | 'llama-3.1-8b' | 'auto' }, unknown, { topic: 'chart.requested'; data: unknown }>
