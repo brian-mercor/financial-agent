@@ -34,6 +34,17 @@ export function SmartChatInterface({ assistant }) {
     setInput('')
     setIsLoading(true)
 
+    // Create assistant message placeholder for streaming
+    const assistantMessageId = (Date.now() + 1).toString()
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date().toISOString(),
+      isStreaming: true,
+    }
+    setMessages(prev => [...prev, assistantMessage])
+
     try {
       const history = messages.map(msg => ({
         id: msg.id,
@@ -42,31 +53,60 @@ export function SmartChatInterface({ assistant }) {
         timestamp: msg.timestamp
       }))
 
-      const response = await apiService.sendMessage(
+      let fullContent = ''
+      let chartHtml = null
+      let hasChart = false
+
+      // Use streaming API
+      const response = await apiService.streamMessage(
         input,
         assistant.id,
-        { history }
+        history,
+        (chunk) => {
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullContent += chunk
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullContent }
+                : msg
+            ))
+          } else if (chunk && typeof chunk === 'object') {
+            // Handle complete response with chart
+            if (chunk.chartHtml) {
+              chartHtml = chunk.chartHtml
+              hasChart = chunk.hasChart
+            }
+            if (chunk.response || chunk.content) {
+              fullContent = chunk.response || chunk.content || fullContent
+            }
+          }
+        }
       )
 
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.response || response.message || response.content,
-        timestamp: new Date().toISOString(),
-        chartHtml: response.chartHtml,
-        hasChart: response.hasChart,
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
+      // Final update with complete response and chart
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: fullContent || response.response || response.message || response.content || 'No response',
+              chartHtml: chartHtml || response.chartHtml,
+              hasChart: hasChart || response.hasChart,
+              isStreaming: false
+            }
+          : msg
+      ))
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'Sorry, I encountered an error. Please try again.',
-        timestamp: new Date().toISOString(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: 'Sorry, I encountered an error. Please try again.',
+              isStreaming: false
+            }
+          : msg
+      ))
     } finally {
       setIsLoading(false)
     }
@@ -98,10 +138,13 @@ export function SmartChatInterface({ assistant }) {
                     <>
                       <div className="prose prose-sm max-w-none">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {message.content}
+                          {message.content || (message.isStreaming ? '...' : '')}
                         </ReactMarkdown>
+                        {message.isStreaming && (
+                          <span className="inline-block ml-1 animate-pulse">▊</span>
+                        )}
                       </div>
-                      {message.chartHtml && (
+                      {message.chartHtml && !message.isStreaming && (
                         <div className="mt-4">
                           <ChartRenderer
                             chartHtml={message.chartHtml}
