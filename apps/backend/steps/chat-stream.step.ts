@@ -376,7 +376,8 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
           ? await llmService.processWithStreaming(
               message,
               assistantType,
-              { traceId, userId }
+              { traceId, userId },
+              history // Pass conversation history to LLM
             )
           : await llmService.process(
               message,

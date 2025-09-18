@@ -161,7 +161,8 @@ export class LLMService {
   async processWithStreaming(
     message: string,
     assistantType: string,
-    context: { traceId: string; userId: string }
+    context: { traceId: string; userId: string },
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>
   ): Promise<LLMResponse> {
     const systemPrompt = this.getSystemPrompt(assistantType);
     let accumulatedContent = '';
@@ -169,14 +170,65 @@ export class LLMService {
     let model = 'llama-3.3-70b-versatile';
     let tokensUsed = 0;
 
-    // Try Groq first
+    // Build messages array with history (same as non-streaming version)
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ];
+
+    // Add conversation history if provided
+    if (history && history.length > 0) {
+      // Limit history to last 10 exchanges to avoid token limits
+      const recentHistory = history.slice(-20);
+      messages.push(...recentHistory);
+    }
+
+    // Add the current user message
+    messages.push({ role: 'user', content: message });
+
+    // Try Azure first if model-router is configured
+    const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT;
+    if (this.azureClient && azureDeployment && azureDeployment.includes('model-router')) {
+      try {
+        provider = 'azure';
+        model = azureDeployment;
+
+        const stream = await this.azureClient.chat.completions.create({
+          messages,
+          model: azureDeployment,
+          temperature: 0.7,
+          max_tokens: 2048,
+          stream: true,
+        });
+
+        for await (const chunk of stream) {
+          const token = chunk.choices[0]?.delta?.content || '';
+          if (token) {
+            accumulatedContent += token;
+            if (this.config.streamCallback) {
+              await this.config.streamCallback(token, { provider, model });
+            }
+          }
+          // Track usage if available
+          if (chunk.usage) {
+            tokensUsed = chunk.usage.total_tokens || 0;
+          }
+        }
+
+        return { content: accumulatedContent, provider, model, tokensUsed };
+      } catch (error) {
+        console.error('Azure streaming failed:', error);
+        if (this.config.providerSwitchCallback) {
+          await this.config.providerSwitchCallback('azure', 'groq', 'Azure API error');
+        }
+        // Fall through to try Groq
+      }
+    }
+
+    // Try Groq as fallback
     if (this.groqClient) {
       try {
         const stream = await this.groqClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
+          messages,
           model: 'llama-3.3-70b-versatile',
           temperature: 0.7,
           max_tokens: 2048,
@@ -203,18 +255,15 @@ export class LLMService {
       }
     }
 
-    // Fallback to Azure OpenAI
+    // Fallback to Azure OpenAI (try this FIRST if Groq is not configured properly)
     if (this.azureClient) {
       try {
         provider = 'azure';
-        model = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4';
-        
+        model = process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'model-router';
+
         const stream = await this.azureClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
-          model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4',
+          messages,
+          model: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT || 'model-router',
           temperature: 0.7,
           max_tokens: 2048,
           stream: true,
@@ -248,10 +297,7 @@ export class LLMService {
         model = 'gpt-4-turbo-preview';
         
         const stream = await this.openaiClient.chat.completions.create({
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: message },
-          ],
+          messages,
           model: 'gpt-4-turbo-preview',
           temperature: 0.7,
           max_tokens: 2048,
