@@ -59,21 +59,64 @@ export function extractSymbol(message) {
   const upperMessage = message.toUpperCase();
   const lowerMessage = message.toLowerCase();
 
-  // First, check for company names
-  for (const [name, symbol] of Object.entries(COMPANY_TO_SYMBOL)) {
-    if (lowerMessage.includes(name)) {
-      return symbol;
+  // Exclude common financial terms and abbreviations that aren't stock symbols
+  const excludedPatterns = [
+    'P/E', 'PE RATIO', 'P/B', 'PB RATIO', 'P/S', 'PS RATIO',
+    'EV/EBITDA', 'EBITDA', 'ROE', 'ROI', 'ROA', 'ROIC',
+    'EPS', 'DCF', 'IPO', 'ETF', 'CEO', 'CFO', 'CTO',
+    'Q1', 'Q2', 'Q3', 'Q4', 'YTD', 'TTM', 'CAGR',
+    'AI', 'ML', 'API', 'UI', 'UX', 'IT', 'HR', 'PR'
+  ];
+
+  // Check if message is asking about a financial term/concept
+  const isAskingAboutConcept = message.match(/\b(what is|what's|explain|define|meaning of)\b/i);
+  if (isAskingAboutConcept) {
+    // Don't extract symbols from educational questions
+    for (const pattern of excludedPatterns) {
+      if (upperMessage.includes(pattern.replace('/', ''))) {
+        return null;
+      }
     }
   }
 
-  // Check for direct ticker symbols (1-5 uppercase letters)
-  const tickerMatch = upperMessage.match(/\b([A-Z]{1,5}(?:\.[A-Z]{1,2})?)\b/);
-  if (tickerMatch) {
-    // Validate it's likely a real ticker (avoid matching random words)
-    const potentialTicker = tickerMatch[1];
-    // Common tickers or patterns
-    if (potentialTicker.length <= 5 && /^[A-Z]+(\.[A-Z]+)?$/.test(potentialTicker)) {
-      return potentialTicker;
+  // First, check for company names with proper context
+  for (const [name, symbol] of Object.entries(COMPANY_TO_SYMBOL)) {
+    const nameRegex = new RegExp(`\\b${name}\\b`, 'i');
+    if (nameRegex.test(lowerMessage)) {
+      // Check if it's in a chart/stock context
+      const contextWords = ['show', 'display', 'chart', 'analyze', 'stock', 'price', 'view', 'analysis'];
+      const hasContext = contextWords.some(word =>
+        lowerMessage.includes(word)
+      );
+      if (hasContext) {
+        return symbol;
+      }
+    }
+  }
+
+  // Check for explicit stock ticker mentions with context
+  // Look for patterns like "AAPL stock", "show AAPL", "$AAPL", etc.
+  const explicitTickerPatterns = [
+    /\$([A-Z]{2,5})\b/,                    // $AAPL (minimum 2 chars for $)
+    /\b([A-Z]{2,5})\s+(?:stock|shares?|chart|price)/i,  // AAPL stock
+    /(?:show|display|analyze|view)\s+(?:me\s+)?(?:the\s+)?([A-Z]{2,5})\b/i,  // show AAPL
+    /\b([A-Z]{2,5})\s+(?:to|at|around|near)\s+\$/i,     // AAPL at $150
+  ];
+
+  for (const pattern of explicitTickerPatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const ticker = match[1].toUpperCase();
+      // Validate it's a reasonable ticker length and format
+      if (ticker.length >= 2 && ticker.length <= 5 && /^[A-Z]+$/.test(ticker)) {
+        // Avoid single letter matches unless with $ prefix
+        if (ticker.length > 1 || message.includes('$' + ticker)) {
+          // Final check - not in excluded patterns
+          if (!excludedPatterns.includes(ticker)) {
+            return ticker;
+          }
+        }
+      }
     }
   }
 
@@ -109,22 +152,39 @@ export function extractSymbol(message) {
 export function isChartRequest(message) {
   const lowerMessage = message.toLowerCase();
 
-  // Check if message contains chart-related keywords
-  const hasChartKeyword = CHART_KEYWORDS.some(keyword =>
+  // If asking about concepts or explanations, not a chart request
+  if (message.match(/\b(what is|what's a|explain|how does|why|when should)\b/i)) {
+    return false;
+  }
+
+  // Check if there's a valid symbol mentioned
+  const symbol = extractSymbol(message);
+  if (!symbol) {
+    return false;
+  }
+
+  // Explicit chart request keywords with symbol
+  const explicitChartKeywords = [
+    'show', 'display', 'view', 'chart', 'graph',
+    'price chart', 'stock chart', 'trading chart'
+  ];
+
+  const hasExplicitChartRequest = explicitChartKeywords.some(keyword =>
     lowerMessage.includes(keyword)
   );
 
-  // Check if there's a symbol mentioned
-  const hasSymbol = extractSymbol(message) !== null;
-
-  // If both chart keyword and symbol are present, it's likely a chart request
-  if (hasChartKeyword && hasSymbol) {
+  if (hasExplicitChartRequest) {
     return true;
   }
 
-  // Special cases: "analyze X stock" pattern
-  if (lowerMessage.includes('analyze') && hasSymbol) {
-    return true;
+  // "Analyze X" pattern - only if X is clearly a stock
+  if (lowerMessage.includes('analyze') && symbol) {
+    // Make sure it's "analyze AAPL" not "analyze P/E ratio"
+    const analyzePattern = /analyze\s+(?:the\s+)?([A-Z]{2,5}|[\w]+)\s*(?:stock|shares?|chart)?/i;
+    const match = message.match(analyzePattern);
+    if (match && symbol) {
+      return true;
+    }
   }
 
   return false;
