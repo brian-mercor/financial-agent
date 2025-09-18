@@ -23,18 +23,18 @@ echo "WEBSITE_SITE_NAME: ${WEBSITE_SITE_NAME}"
 # Check if running in Azure App Service
 if [ ! -z "$WEBSITE_INSTANCE_ID" ]; then
     echo "[AZURE] Running in Azure App Service environment"
-    
+
     # Set production environment
     export NODE_ENV=production
-    
+
     # Use Azure's port or default to 8080
     export PORT=${WEBSITES_PORT:-${PORT:-8080}}
-    
+
     # Set Motia specific environment variables for Azure
     export MOTIA_HOST="0.0.0.0"
     export MOTIA_PORT=$PORT
     export MOTIA_LOG_LEVEL="info"
-    
+
     # Ensure proper file permissions
     if [ -w "/home/site/wwwroot" ]; then
         echo "[PERMISSIONS] Setting file permissions..."
@@ -54,15 +54,61 @@ echo "[VALIDATION] Checking required files:"
 [ -d "steps" ] && echo "✓ steps directory found" || echo "✗ steps directory missing!"
 [ -d "node_modules" ] && echo "✓ node_modules found" || echo "✗ node_modules missing!"
 
-# Check if Motia is installed
+# CRITICAL FIX: Check if Motia AND its dependencies are properly installed
 echo ""
 echo "[MOTIA] Checking Motia installation:"
-if command -v motia &> /dev/null; then
-    echo "✓ Motia CLI found: $(which motia)"
-    motia --version 2>&1 | head -1
-else
-    echo "✗ Motia CLI not found in PATH, trying npx..."
-    npx motia --version 2>&1 | head -1
+
+# Function to test if Motia can actually run
+test_motia() {
+    if [ -f "node_modules/.bin/motia" ]; then
+        # Try to run motia --version, capture both stdout and stderr
+        output=$(node node_modules/.bin/motia --version 2>&1)
+        if echo "$output" | grep -q "Cannot find module"; then
+            echo "✗ Motia found but missing dependencies: $output"
+            return 1
+        elif echo "$output" | grep -q "motia"; then
+            echo "✓ Motia is properly installed"
+            return 0
+        else
+            echo "✗ Motia test failed: $output"
+            return 1
+        fi
+    else
+        echo "✗ Motia binary not found"
+        return 1
+    fi
+}
+
+# Test if Motia works
+if ! test_motia; then
+    echo ""
+    echo "[FIX] Installing/Reinstalling Motia and dependencies..."
+
+    # Check if we have a package-lock.json for faster install
+    if [ -f "package-lock.json" ]; then
+        echo "Running npm ci to ensure all dependencies are installed..."
+        npm ci --production --no-audit --no-fund
+    else
+        echo "Running npm install to ensure all dependencies are installed..."
+        npm install --production --no-audit --no-fund
+    fi
+
+    # If Motia still doesn't work, try installing it specifically
+    if ! test_motia; then
+        echo "Installing Motia packages specifically..."
+        npm install motia @motia/core @motia/cli commander --no-audit --no-fund
+    fi
+
+    # Final check
+    if ! test_motia; then
+        echo "ERROR: Failed to install Motia properly"
+        echo "Attempting to list what's in node_modules/.bin:"
+        ls -la node_modules/.bin/ | head -20
+        echo ""
+        echo "Attempting to see Motia package info:"
+        npm list motia @motia/core @motia/cli commander 2>&1 | head -20
+        exit 1
+    fi
 fi
 
 # Python environment check (for multi-language support)
@@ -82,13 +128,26 @@ fi
 # Build check
 echo ""
 echo "[BUILD] Checking build status:"
-if [ -d "dist" ]; then
+if [ -d "dist" ] || [ -d ".motia/build" ]; then
     echo "✓ Build directory exists"
-    file_count=$(find dist -type f -name "*.js" 2>/dev/null | wc -l)
-    echo "  Found $file_count JavaScript files"
+    if [ -d "dist" ]; then
+        file_count=$(find dist -type f -name "*.js" 2>/dev/null | wc -l)
+        echo "  Found $file_count JavaScript files in dist"
+    fi
+    if [ -d ".motia/build" ]; then
+        file_count=$(find .motia/build -type f -name "*.js" 2>/dev/null | wc -l)
+        echo "  Found $file_count JavaScript files in .motia/build"
+    fi
 else
     echo "⚠ Build directory missing, running build..."
     npm run build || npx motia build
+fi
+
+# Initialize Motia if needed
+if [ ! -d ".motia" ]; then
+    echo ""
+    echo "[MOTIA] Initializing Motia project..."
+    npx motia install
 fi
 
 # Network configuration for Azure
@@ -106,13 +165,9 @@ echo ""
 echo "=========================================="
 echo "STARTING MOTIA SERVER"
 echo "=========================================="
-echo "Command: motia start --port $PORT --host 0.0.0.0"
+echo "Command: npx motia start --port $PORT --host 0.0.0.0"
 echo ""
 
 # Use exec to replace shell process with Motia
 # This ensures proper signal handling in Azure App Service
-if command -v motia &> /dev/null; then
-    exec motia start --port $PORT --host 0.0.0.0
-else
-    exec npx motia start --port $PORT --host 0.0.0.0
-fi
+exec npx motia start --port $PORT --host 0.0.0.0
