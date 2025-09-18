@@ -1,0 +1,145 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --batik-indigo: #1e3a5f;
+    --batik-brown: #6b4423;
+    --quantum-glow: #00d4ff;
+    --memory-purple: #8b5cf6;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    overflow-x: hidden;
+}
+
+.batik-pattern {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0.15;
+    pointer-events: none;
+    background-image:
+        repeating-linear-gradient(45deg, var(--batik-indigo) 0, var(--batik-indigo) 10px, transparent 10px, transparent 20px),
+        repeating-linear-gradient(-45deg, var(--batik-brown) 0, var(--batik-brown) 10px, transparent 10px, transparent 20px);
+    mix-blend-mode: multiply;
+}
+
+.quantum-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--quantum-glow);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--quantum-glow);
+    animation: quantum-float 20s infinite linear;
+}
+
+.feynman-line {
+    stroke: var(--quantum-glow);
+    stroke-width: 1.5;
+    fill: none;
+    opacity: 0.3;
+    animation: pulse-line 3s ease-in-out infinite;
+}
+
+.memory-node {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--memory-purple);
+    border-radius: 50%;
+    box-shadow: 0 0 20px var(--memory-purple);
+    animation: memory-pulse 2s ease-in-out infinite;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.hero-text {
+    font-family: 'Space Grotesk', sans-serif;
+    background: linear-gradient(135deg, #fff 0%, var(--quantum-glow) 50%, var(--memory-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradient-shift 8s ease-in-out infinite;
+    background-size: 200% 200%;
+}
+
+.feature-card {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.feature-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 30px 60px rgba(139, 92, 246, 0.3);
+}
+
+.chat-bubble {
+    animation: float-up 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+.cta-button {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.cta-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.cta-button:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+.neural-connection {
+    stroke: var(--memory-purple);
+    stroke-width: 1;
+    fill: none;
+    stroke-dasharray: 5, 5;
+    animation: dash 20s linear infinite;
+}
+
+.batik-ornament {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    border: 2px solid var(--batik-brown);
+    border-radius: 50%;
+    opacity: 0.2;
+}
+
+.batik-ornament::before {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 2px solid var(--batik-indigo);
+    border-radius: 50%;
+}
+
+@media (max-width: 768px) {
+    .hero-text {
+        font-size: 2.5rem !important;
+    }
+}
