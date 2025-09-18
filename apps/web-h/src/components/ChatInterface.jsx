@@ -45,27 +45,53 @@ export function ChatInterface({ assistant }) {
     try {
       // Build history for context
       const history = messages.map(msg => ({
-        id: msg.id,
         role: msg.role,
-        content: msg.content,
-        timestamp: msg.timestamp.toISOString()
+        content: msg.content
       }))
 
-      // Stream the response
+      let fullContent = ''
+
+      // Stream the response with proper chunk handling
       await apiService.streamMessage(
         input,
         assistant?.id || 'general',
-        { history },
+        history,
         (chunk) => {
-          if (chunk.content) {
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullContent += chunk
             setMessages(prev => {
               const newMessages = [...prev]
               const lastMessage = newMessages[newMessages.length - 1]
               if (lastMessage && lastMessage.role === 'assistant') {
-                lastMessage.content += chunk.content
+                lastMessage.content = fullContent
               }
               return newMessages
             })
+          } else if (chunk && typeof chunk === 'object') {
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullContent += chunk.chunk
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage && lastMessage.role === 'assistant') {
+                  lastMessage.content = fullContent
+                }
+                return newMessages
+              })
+            } else if (chunk.type === 'complete') {
+              if (chunk.response) {
+                fullContent = chunk.response
+                setMessages(prev => {
+                  const newMessages = [...prev]
+                  const lastMessage = newMessages[newMessages.length - 1]
+                  if (lastMessage && lastMessage.role === 'assistant') {
+                    lastMessage.content = fullContent
+                  }
+                  return newMessages
+                })
+              }
+            }
           }
         }
       )

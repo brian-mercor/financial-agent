@@ -57,11 +57,14 @@ export function SmartChatInterface({ assistant }) {
       let chartHtml = null
       let hasChart = false
 
-      // Use streaming API
+      // Use streaming API with enhanced chunk handling
       const response = await apiService.streamMessage(
-        input,
-        assistant.id,
-        history,
+        userMessage.content,
+        assistant.id || 'general',
+        messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
         (chunk) => {
           // Handle streaming chunks
           if (typeof chunk === 'string') {
@@ -72,13 +75,22 @@ export function SmartChatInterface({ assistant }) {
                 : msg
             ))
           } else if (chunk && typeof chunk === 'object') {
-            // Handle complete response with chart
-            if (chunk.chartHtml) {
-              chartHtml = chunk.chartHtml
-              hasChart = chunk.hasChart
-            }
-            if (chunk.response || chunk.content) {
-              fullContent = chunk.response || chunk.content || fullContent
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullContent += chunk.chunk
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: fullContent }
+                  : msg
+              ))
+            } else if (chunk.type === 'complete') {
+              // Handle complete response with chart
+              if (chunk.chartHtml) {
+                chartHtml = chunk.chartHtml
+                hasChart = true
+              }
+              if (chunk.response) {
+                fullContent = chunk.response
+              }
             }
           }
         }
@@ -89,9 +101,9 @@ export function SmartChatInterface({ assistant }) {
         msg.id === assistantMessageId
           ? {
               ...msg,
-              content: fullContent || response.response || response.message || response.content || 'No response',
-              chartHtml: chartHtml || response.chartHtml,
-              hasChart: hasChart || response.hasChart,
+              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+              chartHtml: chartHtml || response?.chartHtml,
+              hasChart: hasChart || response?.hasChart,
               isStreaming: false
             }
           : msg
@@ -162,16 +174,6 @@ export function SmartChatInterface({ assistant }) {
             </div>
           </div>
         ))}
-        {isLoading && (
-          <div className="flex justify-start">
-            <div className="bg-white shadow-md rounded-2xl px-6 py-4">
-              <div className="flex items-center gap-3">
-                <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
-                <span className="text-gray-500">Thinking...</span>
-              </div>
-            </div>
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 

@@ -38,94 +38,136 @@ export function SmartChatInterface({ assistant }) {
     setInput('')
     setIsLoading(true)
 
-    // Create assistant message placeholder for streaming
-    const assistantMessageId = (Date.now() + 1).toString()
-    const assistantMessage = {
-      id: assistantMessageId,
-      role: 'assistant',
-      content: '',
-      timestamp: new Date(),
-      isStreaming: true,
-    }
-    setMessages(prev => [...prev, assistantMessage])
-
     try {
-      let fullContent = ''
-      let chartHtml = null
-      let hasChart = false
+      // Add assistant message placeholder for streaming
+      const assistantMessageId = (Date.now() + 1).toString()
+      const assistantMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: '',
+        timestamp: new Date(),
+        isStreaming: true,
+      }
+      setMessages(prev => [...prev, assistantMessage])
 
-      // Use apiService.streamMessage for proper streaming
-      const response = await apiService.streamMessage(
-        userMessage.content,
-        assistant.id || 'general',
-        messages.map(msg => ({
-          role: msg.role,
-          content: msg.content
-        })),
-        (chunk) => {
-          // Handle streaming chunks
-          if (typeof chunk === 'string') {
-            fullContent += chunk
-            setMessages(prev => prev.map(msg =>
-              msg.id === assistantMessageId
-                ? { ...msg, content: fullContent }
-                : msg
-            ))
-          } else if (chunk && typeof chunk === 'object') {
-            if (chunk.type === 'token' && chunk.chunk) {
-              fullContent += chunk.chunk
-              setMessages(prev => prev.map(msg =>
-                msg.id === assistantMessageId
-                  ? { ...msg, content: fullContent }
-                  : msg
-              ))
-            } else if (chunk.type === 'complete') {
-              // Handle complete response with chart
-              if (chunk.chartHtml) {
-                chartHtml = chunk.chartHtml
-                hasChart = true
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: input,
+          assistantType: assistant.id || 'general',
+          userId: `user-${Date.now()}`,
+          context: {
+            symbols: [],
+            timeframe: '1d',
+            riskTolerance: 'moderate',
+          },
+          // Optional parameters - include for backward compatibility
+          history: messages,
+          stream: true,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to get response')
+      }
+
+      // Check if response is streaming
+      const contentType = response.headers.get('content-type')
+      if (contentType && contentType.includes('text/event-stream')) {
+        // Handle SSE streaming
+        const reader = response.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ''
+        let fullContent = ''
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split('\n')
+          buffer = lines.pop() || ''
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = line.slice(6)
+              if (data === '[DONE]') {
+                // Update message to mark as complete
+                setMessages(prev => prev.map(msg => 
+                  msg.id === assistantMessageId 
+                    ? { ...msg, isStreaming: false }
+                    : msg
+                ))
+                break
               }
-              if (chunk.response) {
-                fullContent = chunk.response
+              try {
+                const parsed = JSON.parse(data)
+                if (parsed.content) {
+                  fullContent += parsed.content
+                  // Update message with accumulated content
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, content: fullContent }
+                      : msg
+                  ))
+                }
+                if (parsed.chartHtml) {
+                  setMessages(prev => prev.map(msg => 
+                    msg.id === assistantMessageId 
+                      ? { ...msg, chartHtml: parsed.chartHtml, hasChart: true }
+                      : msg
+                  ))
+                }
+                if (parsed.workflowId) {
+                  setActiveWorkflow({
+                    workflowId: parsed.workflowId,
+                    agents: parsed.agents || [],
+                    estimatedTime: parsed.estimatedTime || 30,
+                  })
+                }
+              } catch (e) {
+                console.error('Failed to parse SSE data:', e)
               }
             }
           }
         }
-      )
+      } else {
+        // Handle regular JSON response (fallback)
+        const data = await response.json()
+        
+        if (data.workflowId) {
+          setActiveWorkflow({
+            workflowId: data.workflowId,
+            agents: data.agents || [],
+            estimatedTime: data.estimatedTime || 30,
+          })
+        }
 
-      // Final update with complete response
-      setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessageId
-          ? {
-              ...msg,
-              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
-              chartHtml: chartHtml || response?.chartHtml,
-              hasChart: hasChart || response?.hasChart,
-              isStreaming: false
-            }
-          : msg
-      ))
-
-      // Handle workflow if present
-      if (response?.workflowId) {
-        setActiveWorkflow({
-          workflowId: response.workflowId,
-          agents: response.agents || [],
-          estimatedTime: response.estimatedTime || 30,
-        })
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { 
+                ...msg, 
+                content: data.message || data.content || 'I understand. How can I help you further?',
+                workflowId: data.workflowId,
+                chartHtml: data.chartHtml,
+                hasChart: data.hasChart,
+                isStreaming: false 
+              }
+            : msg
+        ))
       }
-
     } catch (error) {
       console.error('Error sending message:', error)
-      setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessageId
-          ? {
-              ...msg,
-              content: 'Sorry, I encountered an error. Please try again.',
-              isStreaming: false
-            }
-          : msg
-      ))
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
     }
@@ -192,27 +234,31 @@ export function SmartChatInterface({ assistant }) {
                       <>
                         <div className="prose prose-sm max-w-none">
                           <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {message.content || (message.isStreaming ? '...' : '')}
+                            {message.content}
                           </ReactMarkdown>
-                          {message.isStreaming && (
-                            <span className="inline-block ml-1 animate-pulse">▊</span>
+                          {message.isStreaming && message.content && (
+                            <span className="inline-block w-2 h-4 bg-gray-400 animate-pulse ml-1" />
                           )}
                         </div>
-                        {message.chartHtml && !message.isStreaming && (
-                          <div className="mt-4">
-                            <ChartRenderer
-                              chartHtml={message.chartHtml}
-                              height="400px"
-                            />
+                        {message.isStreaming && !message.content && (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin text-purple-500" />
+                            <span className="text-gray-500 text-sm">Thinking...</span>
                           </div>
                         )}
                       </>
                     )}
+                    {message.chartHtml && (
+                      <div className="mt-4">
+                        <ChartRenderer 
+                          chartHtml={message.chartHtml}
+                          height="400px"
+                        />
+                      </div>
+                    )}
                   </div>
                   {message.role === 'user' && (
-                    <div className="p-2 bg-white/20 rounded-lg flex-shrink-0">
-                      <User className="h-4 w-4" />
-                    </div>
+                    <User className="h-5 w-5 flex-shrink-0" />
                   )}
                 </div>
               </div>
@@ -238,18 +284,13 @@ export function SmartChatInterface({ assistant }) {
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition ${
-              input.trim() && !isLoading
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-105'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Send className="h-5 w-5" />
             )}
-            {isLoading ? 'Processing...' : 'Send'}
           </button>
         </form>
       </div>

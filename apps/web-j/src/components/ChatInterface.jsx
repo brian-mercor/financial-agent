@@ -50,8 +50,9 @@ export function ChatInterface({ assistant }) {
         assistant?.id || 'general',
         messages.map(m => ({ role: m.role, content: m.content })),
         (chunk) => {
-          if (chunk.chunk) {
-            fullResponse += chunk.chunk
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullResponse += chunk
             setMessages(prev => {
               const newMessages = [...prev]
               const lastMessage = newMessages[newMessages.length - 1]
@@ -60,6 +61,28 @@ export function ChatInterface({ assistant }) {
               }
               return newMessages
             })
+          } else if (chunk && typeof chunk === 'object') {
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullResponse += chunk.chunk
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage.role === 'assistant') {
+                  lastMessage.content = fullResponse
+                }
+                return newMessages
+              })
+            } else if (chunk.type === 'complete' && chunk.response) {
+              fullResponse = chunk.response
+              setMessages(prev => {
+                const newMessages = [...prev]
+                const lastMessage = newMessages[newMessages.length - 1]
+                if (lastMessage.role === 'assistant') {
+                  lastMessage.content = fullResponse
+                }
+                return newMessages
+              })
+            }
           }
         }
       )

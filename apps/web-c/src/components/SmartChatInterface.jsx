@@ -33,32 +33,84 @@ export function SmartChatInterface({ assistant }) {
     setInput('')
     setIsLoading(true)
 
+    // Create assistant message placeholder for streaming
+    const assistantMessageId = (Date.now() + 1).toString()
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      isStreaming: true,
+    }
+    setMessages(prev => [...prev, assistantMessage])
+
     try {
-      const response = await apiService.sendMessage(
-        input,
-        assistant.id,
-        messages
+      let fullContent = ''
+      let chartHtml = null
+      let hasChart = false
+
+      // Use streaming API
+      const response = await apiService.streamMessage(
+        userMessage.content,
+        assistant.id || 'general',
+        messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        (chunk) => {
+          // Handle streaming chunks
+          if (typeof chunk === 'string') {
+            fullContent += chunk
+            setMessages(prev => prev.map(msg =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: fullContent }
+                : msg
+            ))
+          } else if (chunk && typeof chunk === 'object') {
+            if (chunk.type === 'token' && chunk.chunk) {
+              fullContent += chunk.chunk
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessageId
+                  ? { ...msg, content: fullContent }
+                  : msg
+              ))
+            } else if (chunk.type === 'complete') {
+              // Handle complete response with chart
+              if (chunk.chartHtml) {
+                chartHtml = chunk.chartHtml
+                hasChart = true
+              }
+              if (chunk.response) {
+                fullContent = chunk.response
+              }
+            }
+          }
+        }
       )
 
-      const assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: response.response || response.message || response.content || 'Processing your request...',
-        timestamp: new Date(),
-        chartHtml: response.chartHtml,
-        hasChart: response.hasChart,
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
+      // Final update with complete response
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+              chartHtml: chartHtml || response?.chartHtml,
+              hasChart: hasChart || response?.hasChart,
+              isStreaming: false
+            }
+          : msg
+      ))
     } catch (error) {
       console.error('Error sending message:', error)
-      const errorMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: 'CONNECTION ERROR: Unable to reach backend. Verify server is running on port 3000.',
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages(prev => prev.map(msg =>
+        msg.id === assistantMessageId
+          ? {
+              ...msg,
+              content: 'Sorry, I encountered an error. Please try again.',
+              isStreaming: false
+            }
+          : msg
+      ))
     } finally {
       setIsLoading(false)
     }
@@ -101,10 +153,13 @@ export function SmartChatInterface({ assistant }) {
                     <>
                       <div className="font-mono text-sm whitespace-pre-wrap">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                          {message.content}
+                          {message.content || (message.isStreaming ? '...' : '')}
                         </ReactMarkdown>
+                        {message.isStreaming && (
+                          <span className="inline-block ml-1 animate-pulse">▊</span>
+                        )}
                       </div>
-                      {message.chartHtml && (
+                      {message.chartHtml && !message.isStreaming && (
                         <div className="mt-4">
                           <ChartRenderer
                             chartHtml={message.chartHtml}
