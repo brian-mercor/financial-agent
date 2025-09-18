@@ -20,18 +20,23 @@ export const config: ApiRouteConfig = {
   name: 'GetChatMessages',
   method: 'GET',
   path: '/api/chat/sessions/messages',
-  querySchema: z.object({
-    sessionId: z.string(),
-    threadId: z.string().optional(),
-    limit: z.string().optional().transform(val => val ? parseInt(val) : 50),
-    offset: z.string().optional().transform(val => val ? parseInt(val) : 0),
-  }),
   emits: [],
 };
 
 export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
   try {
-    const { sessionId, threadId, limit, offset } = req.query;
+    // Manually parse and validate query parameters
+    const sessionId = req.query.sessionId as string;
+    const threadId = req.query.threadId as string | undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+
+    if (!sessionId) {
+      return {
+        status: 400,
+        body: { error: 'sessionId is required' }
+      };
+    }
     
     logger.info('Fetching chat messages', { sessionId, threadId, limit, offset });
 

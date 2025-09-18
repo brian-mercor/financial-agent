@@ -50,23 +50,23 @@ export const handler: Handlers['WorkflowWSRelay'] = async (event, { logger, stre
     })
 
     // Send the workflow update to the WebSocket stream
-    await streams.set(targetStreamKey, {
-      type: 'workflow_update',
-      workflowId,
-      eventType: type,
-      ...eventData,
-      timestamp: eventData.timestamp || new Date().toISOString(),
-    })
-
-    // Also broadcast to a general workflow stream for monitoring
-    if (streams.workflow) {
-      await streams.workflow.set({
-        type: 'workflow_update',
-        workflowId,
-        eventType: type,
-        ...eventData,
-        timestamp: eventData.timestamp || new Date().toISOString(),
-      })
+    // Check if a workflow stream exists and use it
+    if (streams && streams['workflow-updates']) {
+      const messageId = `${workflowId}-${Date.now()}`
+      await streams['workflow-updates'].set(
+        targetStreamKey,
+        messageId,
+        {
+          id: messageId,
+          type: 'workflow_update',
+          workflowId,
+          eventType: type,
+          ...eventData,
+          timestamp: eventData.timestamp || new Date().toISOString(),
+        }
+      )
+    } else {
+      logger.warn('Workflow updates stream not configured', { workflowId })
     }
 
   } catch (error) {
