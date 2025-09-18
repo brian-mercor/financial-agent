@@ -184,7 +184,7 @@ export const config: ApiRouteConfig = {
   ],
 }
 
-export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, traceId }: any) => {
+export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, state, streams, traceId }: any) => {
   const {
     message,
     assistantType = 'general',
