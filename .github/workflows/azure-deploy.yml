@@ -45,10 +45,17 @@ jobs:
       run: |
         cd apps/backend
         npm ci || npm install
+        # CRITICAL: Run Motia postinstall to create .motia directory
+        npm run postinstall
 
     - name: Build backend
       run: |
         cd apps/backend
+        # Verify Motia is properly installed
+        if [ ! -d ".motia" ]; then
+          echo "ERROR: .motia directory not found, running postinstall"
+          npm run postinstall
+        fi
         # Pre-build Motia to avoid timeout during Azure startup
         npx motia build || echo "Motia build completed or not required"
         npm run build || echo "Build script not found, skipping build"
@@ -70,7 +77,15 @@ jobs:
         if [ ! -d "node_modules" ]; then
             echo "ERROR: node_modules not found - this should have been included in deployment"
             echo "Attempting emergency install..."
-            npm ci --only=production --no-audit --no-fund || npm install --only=production --no-audit --no-fund
+            npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+            # Run postinstall to create .motia directory
+            npm run postinstall
+        fi
+
+        # Check for .motia directory
+        if [ ! -d ".motia" ]; then
+            echo "ERROR: .motia directory not found - running postinstall"
+            npm run postinstall || echo "Failed to run postinstall"
         fi
         
         # CRITICAL: Ensure Motia is installed
@@ -88,15 +103,17 @@ jobs:
             npm install -g motia
         fi
         
-        # Motia should already be built during CI/CD
+        # Build Motia if not already built
+        if [ ! -f ".motia/build.json" ]; then
+            echo "Building Motia application..."
+            npx motia build || echo "Build may have failed, attempting to start anyway"
+        fi
+
         # Start with increased memory and timeout handling
         echo "Starting Motia on port \${PORT:-3001}..."
         export NODE_OPTIONS="--max-old-space-size=2048"
-        PORT=\${PORT:-3001} timeout 300 npx motia start --host 0.0.0.0 || {
-            echo "ERROR: Failed to start Motia within 5 minutes"
-            echo "Attempting direct node start as fallback..."
-            PORT=\${PORT:-3001} node node_modules/@motia/cli/dist/index.js start --host 0.0.0.0
-        }
+        # Use exec to replace the shell process with Motia
+        exec PORT=\${PORT:-3001} npx motia start --host 0.0.0.0
         BACKEND_EOF
         
         chmod +x startup.sh
@@ -104,16 +121,23 @@ jobs:
         # Remove Windows-specific files
         rm -f deploy.cmd .deployment
         
-        # Create deployment package INCLUDING node_modules for Motia
-        # Also include the built Motia files
-        # IMPORTANT: Do NOT exclude node_modules/.bin as it contains motia executable
+        # Verify critical Motia files exist before packaging
+        if [ ! -d ".motia" ]; then
+          echo "ERROR: .motia directory missing - deployment will fail!"
+          exit 1
+        fi
+
+        # Create deployment package INCLUDING node_modules and .motia directory
+        # IMPORTANT: Do NOT exclude node_modules/.bin or .motia directory
         zip -r deploy.zip . \
           -x "*.git*" \
           -x "*.env*" \
           -x "*test*" \
           -x "*.md" \
           -x ".DS_Store" \
-          -x "node_modules/.cache/*"
+          -x "node_modules/.cache/*" \
+          -x "coverage/*" \
+          -x "*.log"
 
     - name: Configure Backend App Service
       run: |
@@ -228,6 +252,14 @@ jobs:
             {
               "name": "POST_BUILD_COMMAND",
               "value": ""
+            },
+            {
+              "name": "WEBSITES_PORT",
+              "value": "3001"
+            },
+            {
+              "name": "WEBSITES_CONTAINER_START_TIME_LIMIT",
+              "value": "600"
             },
             {
               "name": "ALLOWED_ORIGINS",
