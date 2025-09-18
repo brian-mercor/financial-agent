@@ -1,3 +1,5 @@
+import { motiaStreamClient } from './motia-stream-client'
+
 class ApiService {
   constructor() {
     this.baseUrl = '';
@@ -36,8 +38,11 @@ class ApiService {
     }
   }
 
-  async streamMessage(message, assistantType = 'general', history = [], onChunk) {
+  async streamMessageMotia(message, assistantType = 'general', history = [], onChunk) {
+    const userId = `user-${Date.now()}`
+
     try {
+      // First, initiate the streaming request
       const response = await fetch('/api/chat/stream', {
         method: 'POST',
         headers: {
@@ -47,7 +52,7 @@ class ApiService {
           message,
           assistantType,
           history,
-          userId: `user-${Date.now()}`,
+          userId,
           context: {
             symbols: [],
             timeframe: '1d',
@@ -61,34 +66,111 @@ class ApiService {
         throw new Error(`Stream error! status: ${response.status}`);
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
+      const result = await response.json()
+      const traceId = result.traceId
 
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === '[DONE]') return
-            try {
-              const parsed = JSON.parse(data)
-              onChunk(parsed)
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e)
-            }
-          }
-        }
+      // If we got an immediate response, return it
+      if (result.response) {
+        onChunk({ type: 'complete', response: result.response })
+        return result
       }
+
+      // Connect to Motia stream for this user
+      const streamName = 'chat-messages'
+      const streamId = `user:${userId}`
+
+      return new Promise((resolve, reject) => {
+        let fullContent = ''
+        let chartHtml = null
+
+        // Connect to the stream
+        motiaStreamClient.connect(streamName, streamId, { autoReconnect: false })
+
+        // Listen for messages
+        const unsubscribe = motiaStreamClient.on(streamName, streamId, 'message', (data) => {
+          // Only process messages for this trace
+          if (data.traceId !== traceId) return
+
+          switch (data.type) {
+            case 'token':
+              fullContent += data.content || ''
+              onChunk({ chunk: data.content, type: 'token' })
+              break
+
+            case 'complete':
+              onChunk({
+                type: 'complete',
+                response: data.response,
+                provider: data.provider,
+                model: data.model
+              })
+              // Cleanup and resolve
+              unsubscribe()
+              motiaStreamClient.disconnect(streamName, streamId)
+              resolve({
+                response: data.response || fullContent,
+                provider: data.provider,
+                model: data.model,
+                chartHtml,
+                traceId
+              })
+              break
+
+            case 'error':
+              onChunk({ type: 'error', error: data.error })
+              unsubscribe()
+              motiaStreamClient.disconnect(streamName, streamId)
+              reject(new Error(data.error || 'Stream error'))
+              break
+
+            case 'chart':
+              chartHtml = data.chartHtml
+              onChunk({ type: 'chart', chartHtml })
+              break
+          }
+        })
+
+        // Handle connection errors
+        motiaStreamClient.on(streamName, streamId, 'error', (error) => {
+          console.error('Stream connection error:', error)
+          unsubscribe()
+          reject(new Error('Stream connection failed'))
+        })
+
+        // Timeout after 60 seconds
+        setTimeout(() => {
+          unsubscribe()
+          motiaStreamClient.disconnect(streamName, streamId)
+          reject(new Error('Stream timeout'))
+        }, 60000)
+      })
     } catch (error) {
       console.error('Stream Error:', error);
       throw error;
+    }
+  }
+
+  async streamMessage(message, assistantType = 'general', history = [], onChunk) {
+    // Try Motia streaming first
+    try {
+      return await this.streamMessageMotia(message, assistantType, history, onChunk)
+    } catch (error) {
+      console.warn('Motia streaming failed, falling back to polling:', error)
+
+      // Fallback to simple JSON response with simulated streaming
+      const response = await this.sendMessage(message, assistantType, history)
+
+      // Simulate streaming by breaking the response into chunks
+      const text = response.response || response.message || response.content || ''
+      const words = text.split(' ')
+
+      for (let i = 0; i < words.length; i++) {
+        onChunk({ chunk: words[i] + ' ', type: 'token' })
+        await new Promise(resolve => setTimeout(resolve, 30))
+      }
+
+      onChunk({ type: 'complete', response: text })
+      return response
     }
   }
 
