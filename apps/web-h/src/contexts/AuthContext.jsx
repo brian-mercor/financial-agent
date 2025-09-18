@@ -16,16 +16,6 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabase) {
-      // AUTO-LOGIN for testing when Supabase not configured
-      const storedUser = localStorage.getItem('user')
-      if (storedUser) {
-        setUser(JSON.parse(storedUser))
-      } else {
-        const testUser = { id: 'test-user-' + Date.now(), email: 'test@example.com' }
-        localStorage.setItem('user', JSON.stringify(testUser))
-        setUser(testUser)
-        console.log('Auto-logged in with test user (no Supabase configured)')
-      }
       setLoading(false)
       return
     }

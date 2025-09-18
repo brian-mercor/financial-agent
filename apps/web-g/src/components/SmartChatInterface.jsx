@@ -2,7 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AgentStatusPanel } from './AgentStatusPanel'
 import { ChartRenderer } from './ChartRenderer'
 import { apiService } from '../services/api.service'
 
@@ -10,9 +9,7 @@ export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [activeWorkflow, setActiveWorkflow] = useState(null)
   const messagesEndRef = useRef(null)
-  const textareaRef = useRef(null)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -30,8 +27,7 @@ export function SmartChatInterface({ assistant }) {
       id: Date.now().toString(),
       role: 'user',
       content: input,
-      timestamp: new Date(),
-      assistantType: assistant.id,
+      timestamp: new Date().toISOString(),
     }
 
     setMessages(prev => [...prev, userMessage])
@@ -44,17 +40,24 @@ export function SmartChatInterface({ assistant }) {
       id: assistantMessageId,
       role: 'assistant',
       content: '',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       isStreaming: true,
     }
     setMessages(prev => [...prev, assistantMessage])
 
     try {
+      const history = messages.map(msg => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        timestamp: msg.timestamp
+      }))
+
       let fullContent = ''
       let chartHtml = null
       let hasChart = false
 
-      // Use apiService.streamMessage for proper streaming
+      // Use streaming API with enhanced chunk handling
       const response = await apiService.streamMessage(
         userMessage.content,
         assistant.id || 'general',
@@ -93,7 +96,7 @@ export function SmartChatInterface({ assistant }) {
         }
       )
 
-      // Final update with complete response
+      // Final update with complete response and chart
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMessageId
           ? {
@@ -105,16 +108,6 @@ export function SmartChatInterface({ assistant }) {
             }
           : msg
       ))
-
-      // Handle workflow if present
-      if (response?.workflowId) {
-        setActiveWorkflow({
-          workflowId: response.workflowId,
-          agents: response.agents || [],
-          estimatedTime: response.estimatedTime || 30,
-        })
-      }
-
     } catch (error) {
       console.error('Error sending message:', error)
       setMessages(prev => prev.map(msg =>
@@ -131,125 +124,78 @@ export function SmartChatInterface({ assistant }) {
     }
   }, [input, isLoading, assistant.id, messages])
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit()
-    }
-  }
-
   return (
     <div className="flex flex-col h-full bg-gray-50">
-      {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {activeWorkflow && <AgentStatusPanel workflow={activeWorkflow} />}
-
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className={`w-20 h-20 rounded-full ${assistant.color} flex items-center justify-center mb-4`}>
-              <assistant.icon className="h-10 w-10 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold gradient-text mb-2">
-              Hi! I'm your {assistant.name}
-            </h3>
-            <p className="text-gray-600 max-w-md">
-              {assistant.description}. How can I help you today?
-            </p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {assistant.expertise.map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : (
-          messages.map((message) => (
+        {messages.map((message) => (
+          <div
+            key={message.id}
+            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+          >
             <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`max-w-3xl ${
+                message.role === 'user'
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                  : 'bg-white shadow-md'
+              } rounded-2xl px-6 py-4`}
             >
-              <div
-                className={`max-w-3xl ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
-                    : 'bg-white shadow-md'
-                } rounded-2xl px-6 py-4`}
-              >
-                <div className="flex items-start gap-3">
-                  {message.role === 'assistant' && (
-                    <div className={`p-2 rounded-lg ${assistant.color} flex-shrink-0`}>
-                      <Sparkles className="h-4 w-4 text-white" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    {message.role === 'user' ? (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
-                    ) : (
-                      <>
-                        <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                            {message.content || (message.isStreaming ? '...' : '')}
-                          </ReactMarkdown>
-                          {message.isStreaming && (
-                            <span className="inline-block ml-1 animate-pulse">▊</span>
-                          )}
-                        </div>
-                        {message.chartHtml && !message.isStreaming && (
-                          <div className="mt-4">
-                            <ChartRenderer
-                              chartHtml={message.chartHtml}
-                              height="400px"
-                            />
-                          </div>
+              <div className="flex items-start gap-3">
+                {message.role === 'assistant' && (
+                  <Sparkles className="h-5 w-5 text-purple-500 flex-shrink-0 mt-1" />
+                )}
+                <div className="flex-1">
+                  {message.role === 'user' ? (
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  ) : (
+                    <>
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {message.content || (message.isStreaming ? '...' : '')}
+                        </ReactMarkdown>
+                        {message.isStreaming && (
+                          <span className="inline-block ml-1 animate-pulse">▊</span>
                         )}
-                      </>
-                    )}
-                  </div>
-                  {message.role === 'user' && (
-                    <div className="p-2 bg-white/20 rounded-lg flex-shrink-0">
-                      <User className="h-4 w-4" />
-                    </div>
+                      </div>
+                      {message.chartHtml && !message.isStreaming && (
+                        <div className="mt-4">
+                          <ChartRenderer
+                            chartHtml={message.chartHtml}
+                            height="400px"
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
+                {message.role === 'user' && (
+                  <User className="h-5 w-5 flex-shrink-0" />
+                )}
               </div>
             </div>
-          ))
-        )}
+          </div>
+        ))}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
       <div className="border-t bg-white p-4">
         <form onSubmit={handleSubmit} className="flex gap-3">
-          <textarea
-            ref={textareaRef}
+          <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
             placeholder={`Ask ${assistant.name} anything...`}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition"
-            rows="1"
+            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={!input.trim() || isLoading}
-            className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition ${
-              input.trim() && !isLoading
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-105'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="gradient-bg text-white px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition disabled:opacity-50"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
               <Send className="h-5 w-5" />
             )}
-            {isLoading ? 'Processing...' : 'Send'}
           </button>
         </form>
       </div>

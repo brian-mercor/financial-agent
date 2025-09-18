@@ -11,12 +11,6 @@ export function AuthProvider({ children }) {
     const storedUser = localStorage.getItem('user')
     if (storedUser) {
       setUser(JSON.parse(storedUser))
-    } else {
-      // AUTO-LOGIN for testing - remove in production
-      const testUser = { id: 'test-user-' + Date.now(), email: 'test@example.com', name: 'Test User' }
-      localStorage.setItem('user', JSON.stringify(testUser))
-      setUser(testUser)
-      console.log('Auto-logged in with test user for development')
     }
     setLoading(false)
   }, [])
