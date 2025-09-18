@@ -3,31 +3,31 @@ import React from 'react'
 function ComparisonSection() {
   const comparisonData = [
     {
-      feature: 'Setup Time',
-      ourPlatform: '5 minutes',
-      competitor1: '2-3 hours',
-      competitor2: '1-2 hours',
-      traditional: '1-2 weeks'
+      feature: 'AI Models',
+      ourPlatform: 'GPT-4 + Claude',
+      competitor1: 'Basic AI',
+      competitor2: 'No AI',
+      traditional: 'Manual Analysis'
     },
     {
-      feature: 'Performance',
-      ourPlatform: '99.9%',
-      competitor1: '95%',
-      competitor2: '92%',
-      traditional: '85%'
+      feature: 'Win Rate',
+      ourPlatform: '68%',
+      competitor1: '52%',
+      competitor2: '48%',
+      traditional: '45%'
     },
     {
-      feature: 'Cost',
-      ourPlatform: 'Free tier available',
+      feature: 'Pricing',
+      ourPlatform: 'Free tier + $29/mo',
       competitor1: '$99/month',
       competitor2: '$149/month',
-      traditional: 'Custom pricing'
+      traditional: '2% commission'
     },
     {
-      feature: 'Support',
-      ourPlatform: '24/7',
-      competitor1: 'Business hours',
-      competitor2: 'Email only',
+      feature: 'Market Coverage',
+      ourPlatform: 'Stocks, Crypto, Forex',
+      competitor1: 'Stocks only',
+      competitor2: 'Crypto only',
       traditional: 'Limited'
     }
   ]
@@ -36,17 +36,17 @@ function ComparisonSection() {
     <section id="compare" className="py-20 bg-gray-50">
       <div className="container mx-auto px-6">
         <h2 className="text-4xl font-bold text-center mb-16">
-          See the <span className="gradient-text">Difference</span>
+          Why Finagent <span className="gradient-text">Outperforms</span>
         </h2>
         <div className="overflow-x-auto">
           <table className="w-full bg-white rounded-2xl shadow-lg overflow-hidden">
             <thead className="gradient-bg text-white">
               <tr>
                 <th className="p-6 text-left">Feature</th>
-                <th className="p-6 text-center">Our Platform</th>
-                <th className="p-6 text-center">Competitor A</th>
-                <th className="p-6 text-center">Competitor B</th>
-                <th className="p-6 text-center">Traditional</th>
+                <th className="p-6 text-center">Finagent AI</th>
+                <th className="p-6 text-center">Robo-Advisors</th>
+                <th className="p-6 text-center">Trading Bots</th>
+                <th className="p-6 text-center">Human Advisors</th>
               </tr>
             </thead>
             <tbody>
