@@ -1,6 +1,5 @@
 const API_BASE_URL = '/api'
 
-// Standardized request builder to ensure consistency
 const buildRequestBody = (message, assistantType = 'general', options = {}) => {
   return {
     message,
@@ -17,8 +16,8 @@ const buildRequestBody = (message, assistantType = 'general', options = {}) => {
 }
 
 export const apiService = {
-  async sendMessage(message, assistantType, options = {}) {
-    const body = buildRequestBody(message, assistantType, { ...options, stream: false })
+  async sendMessage(message, assistantType, history = []) {
+    const body = buildRequestBody(message, assistantType, { history, stream: false })
 
     const response = await fetch(`${API_BASE_URL}/chat/stream`, {
       method: 'POST',
@@ -66,20 +65,5 @@ export const apiService = {
         }
       }
     }
-  },
-
-  async getWorkflowStatus(workflowId) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/workflow/${workflowId}/status`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('Workflow status error:', error);
-      throw error;
-    }
   }
 }
-
-export default apiService

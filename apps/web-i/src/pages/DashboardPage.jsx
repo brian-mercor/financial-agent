@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Send, Loader2, User, Sparkles, TrendingUp, LineChart, PieChart, LogOut } from 'lucide-react'
+import { apiService } from '../services/api.service'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -67,79 +68,49 @@ export default function DashboardPage() {
     setInput('')
     setIsLoading(true)
 
+    const assistantMessage = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+    }
+
+    setMessages(prev => [...prev, assistantMessage])
+
     try {
-      const response = await fetch('/api/chat/stream', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: input,
-          assistantType: selectedAssistant,
+      const history = messages.slice(-10).map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp
+      }))
+
+      await apiService.streamMessage(
+        input,
+        selectedAssistant,
+        {
           userId: user?.id || `user-${Date.now()}`,
           context: {
             symbols: [],
             timeframe: '1d',
             riskTolerance: 'moderate'
           },
-          history: messages.slice(-10).map(m => ({
-            id: m.id,
-            role: m.role,
-            content: m.content,
-            timestamp: m.timestamp
-          })),
-          stream: true
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to get response')
-      }
-
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-      let assistantMessage = {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      }
-
-      setMessages(prev => [...prev, assistantMessage])
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6)
-            if (data === '[DONE]') return
-
-            try {
-              const parsed = JSON.parse(data)
-              if (parsed.chunk) {
-                assistantMessage.content += parsed.chunk
-                setMessages(prev => {
-                  const newMessages = [...prev]
-                  const lastMessage = newMessages[newMessages.length - 1]
-                  if (lastMessage.id === assistantMessage.id) {
-                    lastMessage.content = assistantMessage.content
-                  }
-                  return newMessages
-                })
+          history
+        },
+        (parsed) => {
+          if (parsed.chunk || parsed.content) {
+            assistantMessage.content += parsed.chunk || parsed.content || ''
+            setMessages(prev => {
+              const newMessages = [...prev]
+              const lastMessage = newMessages[newMessages.length - 1]
+              if (lastMessage.id === assistantMessage.id) {
+                lastMessage.content = assistantMessage.content
               }
-            } catch (e) {
-              console.error('Failed to parse SSE data:', e)
-            }
+              return newMessages
+            })
           }
         }
-      }
+      )
     } catch (error) {
       console.error('Error sending message:', error)
       const errorMessage = {
