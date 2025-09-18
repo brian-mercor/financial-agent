@@ -69,11 +69,8 @@ class ApiService {
       const result = await response.json()
       const traceId = result.traceId
 
-      // If we got an immediate response, return it
-      if (result.response) {
-        onChunk({ type: 'complete', response: result.response })
-        return result
-      }
+      // Store the immediate response as fallback
+      const immediateResponse = result
 
       // Connect to Motia stream for this user
       const streamName = 'chat-messages'
@@ -81,37 +78,44 @@ class ApiService {
 
       return new Promise((resolve, reject) => {
         let fullContent = ''
-        let chartHtml = null
+        let chartHtml = immediateResponse.chartHtml || null
+        let hasReceivedTokens = false
+        let resolved = false
 
         // Connect to the stream
         motiaStreamClient.connect(streamName, streamId, { autoReconnect: false })
 
         // Listen for messages
         const unsubscribe = motiaStreamClient.on(streamName, streamId, 'message', (data) => {
-          // Only process messages for this trace
-          if (data.traceId !== traceId) return
+          console.log('[StreamDebug] Received message:', data)
+
+          // Process messages for this trace or without traceId (for compatibility)
+          if (data.traceId && data.traceId !== traceId) return
 
           switch (data.type) {
             case 'token':
+              hasReceivedTokens = true
               fullContent += data.content || ''
               onChunk({ chunk: data.content, type: 'token' })
               break
 
             case 'complete':
+              resolved = true
               onChunk({
                 type: 'complete',
-                response: data.response,
+                response: data.response || fullContent,
                 provider: data.provider,
-                model: data.model
+                model: data.model,
+                chartHtml: chartHtml || data.chartHtml
               })
               // Cleanup and resolve
               unsubscribe()
               motiaStreamClient.disconnect(streamName, streamId)
               resolve({
-                response: data.response || fullContent,
-                provider: data.provider,
-                model: data.model,
-                chartHtml,
+                response: data.response || fullContent || immediateResponse.response,
+                provider: data.provider || immediateResponse.llmProvider,
+                model: data.model || immediateResponse.model,
+                chartHtml: chartHtml || immediateResponse.chartHtml,
                 traceId
               })
               break
@@ -137,11 +141,45 @@ class ApiService {
           reject(new Error('Stream connection failed'))
         })
 
-        // Timeout after 60 seconds
+        // Fallback to immediate response if no streaming after 2 seconds
         setTimeout(() => {
-          unsubscribe()
-          motiaStreamClient.disconnect(streamName, streamId)
-          reject(new Error('Stream timeout'))
+          if (!hasReceivedTokens && !resolved && immediateResponse.response) {
+            console.log('[StreamDebug] No tokens received, using immediate response')
+            resolved = true
+            unsubscribe()
+            motiaStreamClient.disconnect(streamName, streamId)
+
+            // Simulate streaming the immediate response
+            const text = immediateResponse.response
+            const words = text.split(' ')
+            let index = 0
+            const interval = setInterval(() => {
+              if (index < words.length) {
+                const chunk = words[index] + ' '
+                onChunk({ chunk, type: 'token' })
+                index++
+              } else {
+                clearInterval(interval)
+                onChunk({
+                  type: 'complete',
+                  response: text,
+                  provider: immediateResponse.llmProvider,
+                  model: immediateResponse.model,
+                  chartHtml: immediateResponse.chartHtml
+                })
+                resolve(immediateResponse)
+              }
+            }, 50) // Simulate streaming speed
+          }
+        }, 2000)
+
+        // Hard timeout after 60 seconds
+        setTimeout(() => {
+          if (!resolved) {
+            unsubscribe()
+            motiaStreamClient.disconnect(streamName, streamId)
+            reject(new Error('Stream timeout'))
+          }
         }, 60000)
       })
     } catch (error) {
@@ -188,6 +226,4 @@ class ApiService {
   }
 }
 
-const apiService = new ApiService();
-export { apiService };
-export default apiService;
+export default new ApiService();
