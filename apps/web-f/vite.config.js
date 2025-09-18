@@ -9,8 +9,20 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5178,
       proxy: {
+        '/api/chat/stream': {
+          // Route streaming requests to the Express SSE server
+          target: 'http://localhost:5179',
+          changeOrigin: true,
+          configure: (proxy, options) => {
+            proxy.on('proxyReq', (proxyReq) => {
+              // Ensure streaming headers are preserved
+              proxyReq.setHeader('Accept', 'text/event-stream');
+            });
+          }
+        },
         '/api': {
-          target: 'http://localhost:3001',
+          // All other API requests go to Motia backend
+          target: 'http://localhost:3000',
           changeOrigin: true
         }
       },
