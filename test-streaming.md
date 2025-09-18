@@ -1,8 +1,10 @@
-# Motia Streaming Implementation Test Guide
+# Motia Streaming Architecture
 
-## ✅ Implementation Complete
+## ✅ Current Implementation
 
-### Backend Changes
+The streaming architecture uses **Motia's native WebSocket streams**, NOT Server-Sent Events (SSE).
+
+### How It Works
 1. **Stream Configuration**: Created `/apps/backend/steps/streams/chat-messages.stream.ts`
 2. **Handler Updates**: Modified `/apps/backend/steps/chat-stream.step.ts` to use `streams` context
 3. **Publishing to Streams**: Added logic to publish tokens to `streams['chat-messages']`
