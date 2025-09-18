@@ -117,12 +117,20 @@ export default function DashboardPage() {
             }
           },
           (chunk) => {
-            // Handle streaming chunks
-            if (chunk.content) {
-              streamedContent += chunk.content
+            // Handle streaming chunks from simulated streaming
+            if (chunk.chunk) {
+              streamedContent += chunk.chunk
               setMessages(prev => prev.map(msg =>
                 msg.id === assistantMessage.id
                   ? { ...msg, content: streamedContent }
+                  : msg
+              ))
+            }
+            // Handle chart data if present
+            if (chunk.chartHtml) {
+              setMessages(prev => prev.map(msg =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, chartHtml: chunk.chartHtml, hasChart: true }
                   : msg
               ))
             }

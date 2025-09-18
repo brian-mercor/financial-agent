@@ -30,41 +30,31 @@ export const apiService = {
     return response.json()
   },
 
+  // Keep streamMessage for backward compatibility but it simulates streaming
+  // since Motia doesn't support actual streaming
   async streamMessage(message, assistantType, options = {}, onChunk) {
-    const body = buildRequestBody(message, assistantType, { ...options, stream: true })
+    try {
+      // Call the regular endpoint (Motia returns JSON even with stream:true)
+      const response = await this.sendMessage(message, assistantType, options)
 
-    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
+      // Simulate streaming by breaking the response into chunks
+      const text = response.response || response.message || response.content || ''
+      const words = text.split(' ')
 
-    if (!response.ok) throw new Error('Stream request failed')
-
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') return
-          try {
-            const parsed = JSON.parse(data)
-            onChunk(parsed)
-          } catch (e) {
-            console.error('Failed to parse SSE data:', e)
-          }
-        }
+      for (const word of words) {
+        onChunk({ chunk: word + ' ' })
+        await new Promise(resolve => setTimeout(resolve, 50)) // Small delay between words
       }
+
+      // Send chart if present
+      if (response.chartHtml) {
+        onChunk({ chartHtml: response.chartHtml })
+      }
+
+      return response
+    } catch (error) {
+      console.error('Error in streamMessage:', error)
+      throw error
     }
   },
 

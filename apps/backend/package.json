@@ -5,12 +5,9 @@
   "scripts": {
     "postinstall": "motia install",
     "dev": "motia dev",
-    "dev:streaming": "node src/streaming-proxy.js",
-    "dev:all": "npm run dev & npm run dev:streaming",
     "generate-types": "motia generate-types",
     "build": "motia build",
     "start": "motia start",
-    "start:streaming": "node src/streaming-server.js",
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
