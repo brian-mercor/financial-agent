@@ -175,6 +175,8 @@ export const config: ApiRouteConfig = {
     })).optional(),
     // Add support for stream flag (though Motia doesn't support actual streaming)
     stream: z.boolean().optional(),
+    // Add support for response style preference
+    responseStyle: z.enum(['conversational', 'report']).optional(),
   }),
   emits: [
     'chat.started',
@@ -192,7 +194,8 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
     userId = `user-${Date.now()}`, // Default userId if not provided
     context,
     history,
-    stream
+    stream,
+    responseStyle = 'conversational' // Default to conversational style
   } = req.body
   
   try {
@@ -378,13 +381,15 @@ export const handler: Handlers['ChatStream'] = async (req: any, { logger, emit, 
               message,
               assistantType,
               { traceId, userId },
-              history // Pass conversation history to LLM
+              history, // Pass conversation history to LLM
+              responseStyle // Pass the response style preference
             )
           : await llmService.process(
               message,
               assistantType,
               { traceId, userId },
-              history // Pass conversation history to LLM
+              history, // Pass conversation history to LLM
+              responseStyle // Pass the response style preference
             )
 
         // Store complete response in state

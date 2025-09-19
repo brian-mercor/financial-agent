@@ -38,7 +38,7 @@ class ApiService {
     }
   }
 
-  async streamMessageMotia(message, assistantType = 'general', history = [], onChunk) {
+  async streamMessageMotia(message, assistantType = 'general', history = [], onChunk, responseStyle = 'conversational') {
     const userId = `user-${Date.now()}`
 
     try {
@@ -58,7 +58,8 @@ class ApiService {
             timeframe: '1d',
             riskTolerance: 'moderate',
           },
-          stream: true
+          stream: true,
+          responseStyle // Pass the response style preference
         }),
       });
 
@@ -188,10 +189,10 @@ class ApiService {
     }
   }
 
-  async streamMessage(message, assistantType = 'general', history = [], onChunk) {
+  async streamMessage(message, assistantType = 'general', history = [], onChunk, responseStyle = 'conversational') {
     // Try Motia streaming first
     try {
-      return await this.streamMessageMotia(message, assistantType, history, onChunk)
+      return await this.streamMessageMotia(message, assistantType, history, onChunk, responseStyle)
     } catch (error) {
       console.warn('Motia streaming failed, falling back to polling:', error)
 

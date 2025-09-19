@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AssistantSelector, assistantProfiles } from './AssistantSelector'
 import { SmartChatInterface } from './SmartChatInterface'
+import { ClassicChatInterface } from './ClassicChatInterface'
 import { PlaidConnect } from './PlaidConnect'
 import { AuthForm } from './AuthForm'
 import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/SettingsContext'
 import { TrendingUp, Menu, X, Settings, LogOut, CreditCard, BarChart3, Shield } from 'lucide-react'
 
 export function HomePage() {
@@ -11,6 +14,8 @@ export function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [showPlaidConnect, setShowPlaidConnect] = useState(false)
   const { user, loading, signOut } = useAuth()
+  const { settings } = useSettings()
+  const navigate = useNavigate()
 
   if (loading) {
     return (
@@ -113,7 +118,9 @@ export function HomePage() {
               <Shield className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
               <span className="font-medium text-gray-700">Security</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition group">
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition group">
               <Settings className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
               <span className="font-medium text-gray-700">Settings</span>
             </button>
@@ -161,9 +168,13 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Chat Interface */}
+        {/* Chat Interface - Use classic or split based on settings */}
         <div className="flex-1 overflow-hidden">
-          <SmartChatInterface assistant={selectedAssistant} />
+          {settings.viewMode === 'split' ? (
+            <SmartChatInterface assistant={selectedAssistant} />
+          ) : (
+            <ClassicChatInterface assistant={selectedAssistant} />
+          )}
         </div>
       </div>
     </div>

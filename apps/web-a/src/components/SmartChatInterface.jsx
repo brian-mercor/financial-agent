@@ -3,6 +3,7 @@ import { Send, Loader2, User, Sparkles, FileText, ChevronRight } from 'lucide-re
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import apiService from '../services/api.service'
+import { useSettings } from '../contexts/SettingsContext'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
@@ -11,6 +12,7 @@ export function SmartChatInterface({ assistant }) {
   const [selectedReport, setSelectedReport] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+  const { settings } = useSettings()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -20,13 +22,15 @@ export function SmartChatInterface({ assistant }) {
     scrollToBottom()
   }, [messages])
 
-  // Auto-select the latest assistant report on desktop
+  // Auto-select the latest assistant report on desktop (if enabled in settings)
   useEffect(() => {
-    const assistantMessages = messages.filter(m => m.role === 'assistant')
-    if (assistantMessages.length > 0 && window.innerWidth >= 1024) {
-      setSelectedReport(assistantMessages[assistantMessages.length - 1])
+    if (settings.autoSelectLatestReport) {
+      const assistantMessages = messages.filter(m => m.role === 'assistant')
+      if (assistantMessages.length > 0 && window.innerWidth >= 1024) {
+        setSelectedReport(assistantMessages[assistantMessages.length - 1])
+      }
     }
-  }, [messages])
+  }, [messages, settings.autoSelectLatestReport])
 
   const handleSubmit = useCallback(async (e) => {
     e?.preventDefault()
@@ -61,6 +65,7 @@ export function SmartChatInterface({ assistant }) {
       let hasChart = false
 
       // Use apiService.streamMessage for proper streaming
+      // Note: Split view always uses report style
       const response = await apiService.streamMessage(
         userMessage.content,
         assistant.id || 'general',
@@ -96,7 +101,8 @@ export function SmartChatInterface({ assistant }) {
               }
             }
           }
-        }
+        },
+        'report' // Split view always uses report style
       )
 
       // Final update with complete response

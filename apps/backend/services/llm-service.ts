@@ -93,9 +93,10 @@ export class LLMService {
     message: string,
     assistantType: string,
     context: { traceId: string; userId: string },
-    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    responseStyle: 'conversational' | 'report' = 'conversational'
   ): Promise<LLMResponse> {
-    const systemPrompt = this.getSystemPrompt(assistantType);
+    const systemPrompt = this.getSystemPrompt(assistantType, responseStyle);
 
     // Build messages array with history
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -199,9 +200,10 @@ export class LLMService {
     message: string,
     assistantType: string,
     context: { traceId: string; userId: string },
-    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    responseStyle: 'conversational' | 'report' = 'conversational'
   ): Promise<LLMResponse> {
-    const systemPrompt = this.getSystemPrompt(assistantType);
+    const systemPrompt = this.getSystemPrompt(assistantType, responseStyle);
     let accumulatedContent = '';
     let provider = 'groq';
     let model = 'llama-3.3-70b-versatile';
@@ -389,7 +391,21 @@ export class LLMService {
     throw new Error('No LLM providers configured');
   }
 
-  private getSystemPrompt(assistantType: string): string {
+  private getSystemPrompt(assistantType: string, responseStyle: 'conversational' | 'report' = 'conversational'): string {
+    // For conversational style, use simpler prompts
+    if (responseStyle === 'conversational') {
+      const conversationalPrompts: Record<string, string> = {
+        general: 'You are a helpful AI assistant. Provide clear, concise, and accurate responses.',
+        analyst: 'You are a financial analyst. Provide market insights and analysis in a clear, conversational manner.',
+        trader: 'You are an experienced trader. Share trading insights and strategies conversationally.',
+        advisor: 'You are a financial advisor. Provide investment advice in a friendly, accessible way.',
+        riskManager: 'You are a risk management expert. Explain risks and mitigation strategies clearly.',
+        economist: 'You are an economist. Discuss economic trends and impacts in an approachable manner.',
+      };
+      return conversationalPrompts[assistantType] || conversationalPrompts.general;
+    }
+
+    // For report style, use the detailed prompts
     const basePrompt = `You are an expert assistant that provides comprehensive, report-style responses.
 Always format your responses using markdown with:
 - Clear hierarchical headings (##, ###)
