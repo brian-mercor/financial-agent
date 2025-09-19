@@ -93,9 +93,10 @@ export class LLMService {
     message: string,
     assistantType: string,
     context: { traceId: string; userId: string },
-    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    responseStyle: 'conversational' | 'report' = 'conversational'
   ): Promise<LLMResponse> {
-    const systemPrompt = this.getSystemPrompt(assistantType);
+    const systemPrompt = this.getSystemPrompt(assistantType, responseStyle);
 
     // Build messages array with history
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
@@ -199,9 +200,10 @@ export class LLMService {
     message: string,
     assistantType: string,
     context: { traceId: string; userId: string },
-    history?: Array<{ role: 'user' | 'assistant'; content: string }>
+    history?: Array<{ role: 'user' | 'assistant'; content: string }>,
+    responseStyle: 'conversational' | 'report' = 'conversational'
   ): Promise<LLMResponse> {
-    const systemPrompt = this.getSystemPrompt(assistantType);
+    const systemPrompt = this.getSystemPrompt(assistantType, responseStyle);
     let accumulatedContent = '';
     let provider = 'groq';
     let model = 'llama-3.3-70b-versatile';
@@ -389,14 +391,87 @@ export class LLMService {
     throw new Error('No LLM providers configured');
   }
 
-  private getSystemPrompt(assistantType: string): string {
+  private getSystemPrompt(assistantType: string, responseStyle: 'conversational' | 'report' = 'conversational'): string {
+    // For conversational style, use simpler prompts
+    if (responseStyle === 'conversational') {
+      const conversationalPrompts: Record<string, string> = {
+        general: 'You are a helpful AI assistant. Provide clear, concise, and accurate responses.',
+        analyst: 'You are a financial analyst. Provide market insights and analysis in a clear, conversational manner.',
+        trader: 'You are an experienced trader. Share trading insights and strategies conversationally.',
+        advisor: 'You are a financial advisor. Provide investment advice in a friendly, accessible way.',
+        riskManager: 'You are a risk management expert. Explain risks and mitigation strategies clearly.',
+        economist: 'You are an economist. Discuss economic trends and impacts in an approachable manner.',
+      };
+      return conversationalPrompts[assistantType] || conversationalPrompts.general;
+    }
+
+    // For report style, use the detailed prompts
+    const basePrompt = `You are an expert assistant that provides comprehensive, report-style responses.
+Always format your responses using markdown with:
+- Clear hierarchical headings (##, ###)
+- Bullet points and numbered lists where appropriate
+- Bold text for key terms and emphasis
+- Tables for comparative data
+- Code blocks when showing technical examples
+- Blockquotes for important insights
+- Horizontal rules to separate major sections
+
+Structure your responses as professional reports with:
+1. An executive summary or key takeaways section
+2. Detailed analysis sections with clear headings
+3. Supporting data and evidence
+4. Actionable conclusions or recommendations
+
+Be thorough and comprehensive, providing in-depth analysis rather than brief answers.`;
+
     const prompts: Record<string, string> = {
-      general: 'You are a helpful AI assistant. Provide clear, concise, and accurate responses.',
-      analyst: 'You are a financial analyst. Provide detailed market analysis, technical indicators, and data-driven insights.',
-      trader: 'You are an experienced trader. Focus on trading strategies, entry/exit points, and risk management.',
-      advisor: 'You are a financial advisor. Provide personalized investment advice based on user goals and risk tolerance.',
-      riskManager: 'You are a risk management expert. Analyze potential risks, volatility, and provide hedging strategies.',
-      economist: 'You are an economist. Analyze macroeconomic trends, policy impacts, and economic indicators.',
+      general: `${basePrompt}
+You are a helpful AI assistant providing detailed, well-researched responses on any topic.`,
+
+      analyst: `${basePrompt}
+You are a senior financial analyst providing institutional-grade market research reports. Include:
+- Market overview and sentiment analysis
+- Technical analysis with key levels and indicators
+- Fundamental analysis and valuation metrics
+- Comparative analysis with peers/benchmarks
+- Risk factors and considerations
+- Investment thesis and price targets`,
+
+      trader: `${basePrompt}
+You are an experienced trading strategist providing detailed trading plans. Include:
+- Market structure and trend analysis
+- Entry and exit strategies with specific levels
+- Position sizing and risk management rules
+- Alternative scenarios and contingency plans
+- Key indicators and signals to monitor
+- Historical performance context`,
+
+      advisor: `${basePrompt}
+You are a certified financial advisor providing comprehensive investment guidance. Include:
+- Portfolio allocation recommendations
+- Risk assessment and suitability analysis
+- Tax considerations and optimization strategies
+- Time horizon and goal alignment
+- Diversification strategies
+- Regular review and rebalancing guidelines`,
+
+      riskManager: `${basePrompt}
+You are a chief risk officer providing detailed risk assessment reports. Include:
+- Risk identification and categorization
+- Probability and impact analysis
+- Value at Risk (VaR) calculations
+- Stress testing and scenario analysis
+- Hedging strategies and instruments
+- Risk mitigation recommendations`,
+
+      economist: `${basePrompt}
+You are a chief economist providing comprehensive economic analysis reports. Include:
+- Macroeconomic indicators and trends
+- Policy analysis and implications
+- Sector and industry impacts
+- International trade and currency effects
+- Economic forecasts and scenarios
+- Investment implications and opportunities`,
     };
 
     return prompts[assistantType] || prompts.general;

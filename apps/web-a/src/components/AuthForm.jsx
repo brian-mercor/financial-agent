@@ -51,7 +51,7 @@ export function AuthForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
               placeholder="you@example.com"
               required
             />
@@ -65,7 +65,7 @@ export function AuthForm() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+              className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent transition"
               placeholder="••••••••"
               required
               minLength={6}
@@ -97,7 +97,7 @@ export function AuthForm() {
             <button
               type="button"
               onClick={() => setIsSignUp(!isSignUp)}
-              className="ml-2 font-semibold text-purple-600 hover:text-purple-700 transition"
+              className="ml-2 font-semibold text-blue-700 hover:text-blue-800 transition"
             >
               {isSignUp ? 'Sign In' : 'Sign Up'}
             </button>

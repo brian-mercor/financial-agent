@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { AssistantSelector, assistantProfiles } from './AssistantSelector'
 import { SmartChatInterface } from './SmartChatInterface'
+import { ClassicChatInterface } from './ClassicChatInterface'
 import { PlaidConnect } from './PlaidConnect'
 import { AuthForm } from './AuthForm'
 import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/SettingsContext'
 import { TrendingUp, Menu, X, Settings, LogOut, CreditCard, BarChart3, Shield } from 'lucide-react'
 
 export function HomePage() {
@@ -11,12 +14,14 @@ export function HomePage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true)
   const [showPlaidConnect, setShowPlaidConnect] = useState(false)
   const { user, loading, signOut } = useAuth()
+  const { settings } = useSettings()
+  const navigate = useNavigate()
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-purple-50 to-indigo-100">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500 mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600 font-medium">Loading your experience...</p>
         </div>
       </div>
@@ -25,7 +30,7 @@ export function HomePage() {
 
   if (!user) {
     return (
-      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-purple-50 via-white to-indigo-100">
+      <div className="flex h-screen items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-100">
         <AuthForm />
       </div>
     )
@@ -45,7 +50,7 @@ export function HomePage() {
           </div>
 
           {/* User Info */}
-          <div className="mb-6 p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
             <p className="text-sm text-gray-600">Welcome back</p>
             <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
           </div>
@@ -76,16 +81,16 @@ export function HomePage() {
             ) : (
               <button
                 onClick={() => setShowPlaidConnect(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-purple-200 rounded-xl hover:bg-purple-50 transition shadow-sm hover:shadow-md"
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-blue-200 rounded-xl hover:bg-blue-50 transition shadow-sm hover:shadow-md"
               >
-                <CreditCard className="h-4 w-4 text-purple-600" />
+                <CreditCard className="h-4 w-4 text-blue-700" />
                 <span className="font-medium text-gray-900">Manage Accounts</span>
               </button>
             )}
           </div>
 
           {/* Portfolio Summary Card */}
-          <div className="mb-6 p-5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl text-white shadow-lg">
+          <div className="mb-6 p-5 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl text-white shadow-lg">
             <h3 className="text-sm font-semibold opacity-90 mb-4">Portfolio Overview</h3>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
@@ -105,16 +110,18 @@ export function HomePage() {
 
           {/* Quick Actions */}
           <div className="space-y-2">
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-50 transition group">
-              <BarChart3 className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition group">
+              <BarChart3 className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
               <span className="font-medium text-gray-700">Analytics</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-50 transition group">
-              <Shield className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
+            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition group">
+              <Shield className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
               <span className="font-medium text-gray-700">Security</span>
             </button>
-            <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-purple-50 transition group">
-              <Settings className="h-5 w-5 text-purple-600 group-hover:scale-110 transition-transform" />
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-blue-50 transition group">
+              <Settings className="h-5 w-5 text-blue-700 group-hover:scale-110 transition-transform" />
               <span className="font-medium text-gray-700">Settings</span>
             </button>
             <button
@@ -136,7 +143,7 @@ export function HomePage() {
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="p-2 rounded-lg hover:bg-purple-50 transition"
+                className="p-2 rounded-lg hover:bg-blue-50 transition"
               >
                 {isSidebarOpen ? (
                   <X className="h-5 w-5 text-gray-600" />
@@ -161,9 +168,13 @@ export function HomePage() {
           </div>
         </div>
 
-        {/* Chat Interface */}
+        {/* Chat Interface - Use classic or split based on settings */}
         <div className="flex-1 overflow-hidden">
-          <SmartChatInterface assistant={selectedAssistant} />
+          {settings.viewMode === 'split' ? (
+            <SmartChatInterface assistant={selectedAssistant} />
+          ) : (
+            <ClassicChatInterface assistant={selectedAssistant} />
+          )}
         </div>
       </div>
     </div>
