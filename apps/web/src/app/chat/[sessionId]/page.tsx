@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
+import Link from 'next/link';
 import { ChatInterface } from '../../../components/ChatInterface/ChatInterface';
 import { chatHistoryService } from '../../../lib/chat-history.service';
 
@@ -44,10 +45,10 @@ export default function ChatSessionPage() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-semibold mb-4 text-red-600">Chat session not found</h2>
-          <p className="text-gray-600 mb-4">The chat session you're looking for doesn't exist.</p>
-          <a href="/chat" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+          <p className="text-gray-600 mb-4">The chat session you&apos;re looking for doesn&apos;t exist.</p>
+          <Link href="/chat" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
             Start New Chat
-          </a>
+          </Link>
         </div>
       </div>
     );
