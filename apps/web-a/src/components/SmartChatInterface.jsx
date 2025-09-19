@@ -1,16 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Send, Loader2, User, Sparkles } from 'lucide-react'
+import { Send, Loader2, User, Sparkles, FileText, ChevronRight } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AgentStatusPanel } from './AgentStatusPanel'
-import { ChartRenderer } from './ChartRenderer'
 import apiService from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
   const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [activeWorkflow, setActiveWorkflow] = useState(null)
+  const [selectedReport, setSelectedReport] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
 
@@ -20,6 +18,14 @@ export function SmartChatInterface({ assistant }) {
 
   useEffect(() => {
     scrollToBottom()
+  }, [messages])
+
+  // Auto-select the latest assistant report on desktop
+  useEffect(() => {
+    const assistantMessages = messages.filter(m => m.role === 'assistant')
+    if (assistantMessages.length > 0 && window.innerWidth >= 1024) {
+      setSelectedReport(assistantMessages[assistantMessages.length - 1])
+    }
   }, [messages])
 
   const handleSubmit = useCallback(async (e) => {
@@ -94,25 +100,23 @@ export function SmartChatInterface({ assistant }) {
       )
 
       // Final update with complete response
+      const finalMessage = {
+        id: assistantMessageId,
+        role: 'assistant',
+        content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+        chartHtml: chartHtml || response?.chartHtml,
+        hasChart: hasChart || response?.hasChart,
+        isStreaming: false,
+        timestamp: new Date(),
+      }
+
       setMessages(prev => prev.map(msg =>
-        msg.id === assistantMessageId
-          ? {
-              ...msg,
-              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
-              chartHtml: chartHtml || response?.chartHtml,
-              hasChart: hasChart || response?.hasChart,
-              isStreaming: false
-            }
-          : msg
+        msg.id === assistantMessageId ? finalMessage : msg
       ))
 
-      // Handle workflow if present
-      if (response?.workflowId) {
-        setActiveWorkflow({
-          workflowId: response.workflowId,
-          agents: response.agents || [],
-          estimatedTime: response.estimatedTime || 30,
-        })
+      // Auto-select this report on desktop
+      if (window.innerWidth >= 1024) {
+        setSelectedReport(finalMessage)
       }
 
     } catch (error) {
@@ -138,120 +142,380 @@ export function SmartChatInterface({ assistant }) {
     }
   }
 
-  return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {activeWorkflow && <AgentStatusPanel workflow={activeWorkflow} />}
+  const assistantReports = messages.filter(m => m.role === 'assistant')
 
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className={`w-20 h-20 rounded-full ${assistant.color} flex items-center justify-center mb-4`}>
-              <assistant.icon className="h-10 w-10 text-white" />
+  return (
+    <div className="flex h-full bg-gray-50">
+      {/* Desktop Layout - Two columns */}
+      <div className="hidden lg:flex flex-1">
+        {/* Left Panel - Reports */}
+        <div className="flex-1 flex flex-col border-r bg-white">
+          {selectedReport ? (
+            <div className="flex-1 overflow-y-auto">
+              <div className="p-8 max-w-4xl mx-auto">
+                {/* Report Header */}
+                <div className="mb-6 pb-6 border-b">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className={`p-2 rounded-lg ${assistant.color} flex-shrink-0`}>
+                      <FileText className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Analysis Report</h2>
+                      <p className="text-sm text-gray-500">
+                        {new Date(selectedReport.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Markdown Content - Enhanced Styling */}
+                <div className="prose prose-lg max-w-none">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      h2: ({children}) => (
+                        <h2 className="text-2xl font-bold mt-8 mb-4 text-gray-900 border-b pb-2">
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({children}) => (
+                        <h3 className="text-xl font-semibold mt-6 mb-3 text-gray-800">
+                          {children}
+                        </h3>
+                      ),
+                      ul: ({children}) => (
+                        <ul className="my-4 space-y-2">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({children}) => (
+                        <ol className="my-4 space-y-2">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({children}) => (
+                        <li className="ml-6 text-gray-700">
+                          {children}
+                        </li>
+                      ),
+                      blockquote: ({children}) => (
+                        <blockquote className="border-l-4 border-purple-500 pl-4 my-4 italic text-gray-700 bg-purple-50 py-2 pr-4 rounded-r">
+                          {children}
+                        </blockquote>
+                      ),
+                      table: ({children}) => (
+                        <div className="overflow-x-auto my-6">
+                          <table className="min-w-full border-collapse border border-gray-300">
+                            {children}
+                          </table>
+                        </div>
+                      ),
+                      th: ({children}) => (
+                        <th className="border border-gray-300 px-4 py-2 bg-gray-100 font-semibold text-left">
+                          {children}
+                        </th>
+                      ),
+                      td: ({children}) => (
+                        <td className="border border-gray-300 px-4 py-2">
+                          {children}
+                        </td>
+                      ),
+                      code: ({inline, children}) => (
+                        inline
+                          ? <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">{children}</code>
+                          : <code className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">{children}</code>
+                      ),
+                      hr: () => (
+                        <hr className="my-8 border-t-2 border-gray-200" />
+                      ),
+                      strong: ({children}) => (
+                        <strong className="font-bold text-purple-600">
+                          {children}
+                        </strong>
+                      ),
+                    }}
+                  >
+                    {selectedReport.content || (selectedReport.isStreaming ? 'Generating report...' : '')}
+                  </ReactMarkdown>
+                  {selectedReport.isStreaming && (
+                    <span className="inline-block ml-1 animate-pulse text-purple-500">▊</span>
+                  )}
+                </div>
+
+                {/* Chart if present */}
+                {selectedReport.chartHtml && !selectedReport.isStreaming && (
+                  <div className="mt-8 p-6 bg-gray-50 rounded-lg">
+                    <div dangerouslySetInnerHTML={{ __html: selectedReport.chartHtml }} />
+                  </div>
+                )}
+              </div>
             </div>
-            <h3 className="text-2xl font-bold gradient-text mb-2">
-              Hi! I'm your {assistant.name}
-            </h3>
-            <p className="text-gray-600 max-w-md">
-              {assistant.description}. How can I help you today?
-            </p>
-            <div className="flex flex-wrap gap-2 mt-4">
-              {assistant.expertise.map((skill, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
-                >
-                  {skill}
-                </span>
-              ))}
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <FileText className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg">No reports yet</p>
+                <p className="text-sm mt-2">Start a conversation to generate analysis reports</p>
+              </div>
+            </div>
+          )}
+
+          {/* Report Selector */}
+          {assistantReports.length > 1 && (
+            <div className="border-t p-4 bg-gray-50">
+              <div className="flex gap-2 overflow-x-auto">
+                {assistantReports.map((report, index) => (
+                  <button
+                    key={report.id}
+                    onClick={() => setSelectedReport(report)}
+                    className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap transition ${
+                      selectedReport?.id === report.id
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-white text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    Report {index + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right Panel - Chat */}
+        <div className="w-96 flex flex-col bg-white">
+          {/* Chat Header */}
+          <div className="p-4 border-b bg-gradient-to-r from-purple-500 to-indigo-600">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <assistant.icon className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-white font-semibold">{assistant.name}</h3>
+                <p className="text-white/80 text-sm">Chat Assistant</p>
+              </div>
             </div>
           </div>
-        ) : (
-          messages.map((message) => (
-            <div
-              key={message.id}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-3xl ${
-                  message.role === 'user'
-                    ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
-                    : 'bg-white shadow-md'
-                } rounded-2xl px-6 py-4`}
-              >
-                <div className="flex items-start gap-3">
-                  {message.role === 'assistant' && (
-                    <div className={`p-2 rounded-lg ${assistant.color} flex-shrink-0`}>
-                      <Sparkles className="h-4 w-4 text-white" />
+
+          {/* Chat Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {messages.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500 text-sm">Start a conversation...</p>
+              </div>
+            ) : (
+              messages.map((message) => (
+                <div key={message.id} className="flex flex-col">
+                  <div className={`flex items-start gap-2 ${
+                    message.role === 'user' ? 'flex-row-reverse' : ''
+                  }`}>
+                    <div className={`p-1.5 rounded-full flex-shrink-0 ${
+                      message.role === 'user'
+                        ? 'bg-purple-500'
+                        : assistant.color
+                    }`}>
+                      {message.role === 'user' ? (
+                        <User className="h-3.5 w-3.5 text-white" />
+                      ) : (
+                        <Sparkles className="h-3.5 w-3.5 text-white" />
+                      )}
                     </div>
-                  )}
-                  <div className="flex-1">
+                    <div className={`px-3 py-2 rounded-lg max-w-[85%] ${
+                      message.role === 'user'
+                        ? 'bg-purple-500 text-white'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {message.role === 'user' ? (
+                        <p className="text-sm">{message.content}</p>
+                      ) : (
+                        <p className="text-sm">
+                          {message.content ? 'Report generated. View in main panel.' : 'Generating report...'}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Chat Input */}
+          <div className="border-t p-3">
+            <form onSubmit={handleSubmit} className="flex gap-2">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask a question..."
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                rows="2"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={!input.trim() || isLoading}
+                className={`px-3 py-2 rounded-lg transition ${
+                  input.trim() && !isLoading
+                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile/Tablet Layout - Single column */}
+      <div className="lg:hidden flex-1 flex flex-col">
+        {/* Messages Area */}
+        <div className="flex-1 overflow-y-auto">
+          {messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <div className={`w-20 h-20 rounded-full ${assistant.color} flex items-center justify-center mb-4`}>
+                <assistant.icon className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold gradient-text mb-2">
+                Hi! I'm your {assistant.name}
+              </h3>
+              <p className="text-gray-600 max-w-md">
+                {assistant.description}. How can I help you today?
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                {assistant.expertise.map((skill, index) => (
+                  <span
+                    key={index}
+                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4 p-4 max-w-3xl mx-auto w-full">
+              {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className="flex flex-col items-center"
+                >
+                  {/* Message Header */}
+                  <div className="flex items-center gap-3 w-full mb-2">
+                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                      message.role === 'user'
+                        ? 'bg-purple-500'
+                        : assistant.color
+                    }`}>
+                      {message.role === 'user' ? (
+                        <User className="h-4 w-4 text-white" />
+                      ) : (
+                        <Sparkles className="h-4 w-4 text-white" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-gray-700">
+                        {message.role === 'user' ? 'You' : assistant.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(message.timestamp).toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Message Content */}
+                  <div className={`w-full rounded-xl p-4 ${
+                    message.role === 'user'
+                      ? 'bg-purple-50 border border-purple-200'
+                      : 'bg-white shadow-md border border-gray-200'
+                  }`}>
                     {message.role === 'user' ? (
-                      <p className="whitespace-pre-wrap">{message.content}</p>
+                      <p className="text-gray-800">{message.content}</p>
                     ) : (
                       <>
                         <div className="prose prose-sm max-w-none">
-                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              h2: ({children}) => (
+                                <h2 className="text-xl font-bold mt-6 mb-3 text-gray-900 border-b pb-2">
+                                  {children}
+                                </h2>
+                              ),
+                              h3: ({children}) => (
+                                <h3 className="text-lg font-semibold mt-4 mb-2 text-gray-800">
+                                  {children}
+                                </h3>
+                              ),
+                              blockquote: ({children}) => (
+                                <blockquote className="border-l-4 border-purple-500 pl-4 my-3 italic text-gray-700 bg-purple-50 py-2 pr-4 rounded-r">
+                                  {children}
+                                </blockquote>
+                              ),
+                              strong: ({children}) => (
+                                <strong className="font-bold text-purple-600">
+                                  {children}
+                                </strong>
+                              ),
+                            }}
+                          >
                             {message.content || (message.isStreaming ? '...' : '')}
                           </ReactMarkdown>
                           {message.isStreaming && (
-                            <span className="inline-block ml-1 animate-pulse">▊</span>
+                            <span className="inline-block ml-1 animate-pulse text-purple-500">▊</span>
                           )}
                         </div>
                         {message.chartHtml && !message.isStreaming && (
                           <div className="mt-4">
-                            <ChartRenderer
-                              chartHtml={message.chartHtml}
-                              height="400px"
-                            />
+                            <div dangerouslySetInnerHTML={{ __html: message.chartHtml }} />
                           </div>
                         )}
                       </>
                     )}
                   </div>
-                  {message.role === 'user' && (
-                    <div className="p-2 bg-white/20 rounded-lg flex-shrink-0">
-                      <User className="h-4 w-4" />
-                    </div>
-                  )}
                 </div>
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
-          ))
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+          )}
+        </div>
 
-      {/* Input Area */}
-      <div className="border-t bg-white p-4">
-        <form onSubmit={handleSubmit} className="flex gap-3">
-          <textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={`Ask ${assistant.name} anything...`}
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition"
-            rows="1"
-            disabled={isLoading}
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || isLoading}
-            className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition ${
-              input.trim() && !isLoading
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-105'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {isLoading ? (
-              <Loader2 className="h-5 w-5 animate-spin" />
-            ) : (
-              <Send className="h-5 w-5" />
-            )}
-            {isLoading ? 'Processing...' : 'Send'}
-          </button>
-        </form>
+        {/* Input Area */}
+        <div className="border-t bg-white p-4">
+          <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
+            <textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={`Ask ${assistant.name} anything...`}
+              className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition"
+              rows="1"
+              disabled={isLoading}
+            />
+            <button
+              type="submit"
+              disabled={!input.trim() || isLoading}
+              className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition ${
+                input.trim() && !isLoading
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-105'
+                  : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <Send className="h-5 w-5" />
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )
