@@ -378,21 +378,21 @@ export function SmartChatInterface({ assistant }) {
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto">
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center p-4">
-              <div className={`w-20 h-20 rounded-full ${assistant.color} flex items-center justify-center mb-4`}>
-                <assistant.icon className="h-10 w-10 text-white" />
+            <div className="flex flex-col items-center justify-center h-full text-center p-3 sm:p-4">
+              <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full ${assistant.color} flex items-center justify-center mb-3 sm:mb-4`}>
+                <assistant.icon className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold gradient-text mb-2">
+              <h3 className="text-xl sm:text-2xl font-bold gradient-text mb-2">
                 Hi! I'm your {assistant.name}
               </h3>
-              <p className="text-gray-600 max-w-md">
+              <p className="text-sm sm:text-base text-gray-600 max-w-xs sm:max-w-md px-2">
                 {assistant.description}. How can I help you today?
               </p>
-              <div className="flex flex-wrap gap-2 mt-4 justify-center">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-3 sm:mt-4 justify-center px-2">
                 {assistant.expertise.map((skill, index) => (
                   <span
                     key={index}
-                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm"
+                    className="px-2 py-1 sm:px-3 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm"
                   >
                     {skill}
                   </span>
@@ -400,27 +400,27 @@ export function SmartChatInterface({ assistant }) {
               </div>
             </div>
           ) : (
-            <div className="space-y-4 p-4 max-w-3xl mx-auto w-full">
+            <div className="space-y-3 sm:space-y-4 p-3 sm:p-4 max-w-3xl mx-auto w-full">
               {messages.map((message) => (
                 <div
                   key={message.id}
-                  className="flex flex-col items-center"
+                  className="flex flex-col"
                 >
                   {/* Message Header */}
-                  <div className="flex items-center gap-3 w-full mb-2">
-                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                  <div className="flex items-center gap-2 sm:gap-3 w-full mb-2">
+                    <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                       message.role === 'user'
                         ? 'bg-purple-500'
                         : assistant.color
                     }`}>
                       {message.role === 'user' ? (
-                        <User className="h-4 w-4 text-white" />
+                        <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                       ) : (
-                        <Sparkles className="h-4 w-4 text-white" />
+                        <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
                       )}
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-700">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-medium text-gray-700 truncate">
                         {message.role === 'user' ? 'You' : assistant.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -430,33 +430,93 @@ export function SmartChatInterface({ assistant }) {
                   </div>
 
                   {/* Message Content */}
-                  <div className={`w-full rounded-xl p-4 ${
+                  <div className={`w-full rounded-xl p-3 sm:p-4 ${
                     message.role === 'user'
                       ? 'bg-purple-50 border border-purple-200'
                       : 'bg-white shadow-md border border-gray-200'
                   }`}>
                     {message.role === 'user' ? (
-                      <p className="text-gray-800">{message.content}</p>
+                      <p className="text-sm sm:text-base text-gray-800 break-words">{message.content}</p>
                     ) : (
                       <>
-                        <div className="prose prose-sm max-w-none">
+                        <div className="prose prose-sm max-w-none
+                          prose-headings:text-base sm:prose-headings:text-lg
+                          prose-p:text-sm sm:prose-p:text-base
+                          prose-li:text-sm sm:prose-li:text-base
+                          prose-ul:pl-4 sm:prose-ul:pl-6
+                          prose-ol:pl-4 sm:prose-ol:pl-6
+                          prose-blockquote:text-sm sm:prose-blockquote:text-base
+                          prose-code:text-xs sm:prose-code:text-sm
+                          prose-pre:text-xs sm:prose-pre:text-sm
+                          prose-table:text-xs sm:prose-table:text-sm">
                           <ReactMarkdown
                             remarkPlugins={[remarkGfm]}
                             components={{
                               h2: ({children}) => (
-                                <h2 className="text-xl font-bold mt-6 mb-3 text-gray-900 border-b pb-2">
+                                <h2 className="text-lg sm:text-xl font-bold mt-4 sm:mt-6 mb-2 sm:mb-3 text-gray-900 border-b pb-1 sm:pb-2">
                                   {children}
                                 </h2>
                               ),
                               h3: ({children}) => (
-                                <h3 className="text-lg font-semibold mt-4 mb-2 text-gray-800">
+                                <h3 className="text-base sm:text-lg font-semibold mt-3 sm:mt-4 mb-1.5 sm:mb-2 text-gray-800">
                                   {children}
                                 </h3>
                               ),
+                              ul: ({children}) => (
+                                <ul className="my-2 sm:my-3 space-y-1 sm:space-y-1.5 list-disc pl-4 sm:pl-6">
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({children}) => (
+                                <ol className="my-2 sm:my-3 space-y-1 sm:space-y-1.5 list-decimal pl-4 sm:pl-6">
+                                  {children}
+                                </ol>
+                              ),
+                              li: ({children}) => (
+                                <li className="text-sm sm:text-base text-gray-700">
+                                  {children}
+                                </li>
+                              ),
+                              p: ({children}) => (
+                                <p className="text-sm sm:text-base text-gray-700 my-2 sm:my-3">
+                                  {children}
+                                </p>
+                              ),
                               blockquote: ({children}) => (
-                                <blockquote className="border-l-4 border-purple-500 pl-4 my-3 italic text-gray-700 bg-purple-50 py-2 pr-4 rounded-r">
+                                <blockquote className="border-l-3 sm:border-l-4 border-purple-500 pl-3 sm:pl-4 my-2 sm:my-3 italic text-gray-700 bg-purple-50 py-1.5 sm:py-2 pr-3 sm:pr-4 rounded-r text-sm sm:text-base">
                                   {children}
                                 </blockquote>
+                              ),
+                              table: ({children}) => (
+                                <div className="overflow-x-auto my-3 sm:my-4 -mx-3 sm:mx-0">
+                                  <div className="inline-block min-w-full px-3 sm:px-0">
+                                    <table className="min-w-full border-collapse border border-gray-300 text-xs sm:text-sm">
+                                      {children}
+                                    </table>
+                                  </div>
+                                </div>
+                              ),
+                              th: ({children}) => (
+                                <th className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 bg-gray-100 font-semibold text-left text-xs sm:text-sm">
+                                  {children}
+                                </th>
+                              ),
+                              td: ({children}) => (
+                                <td className="border border-gray-300 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm">
+                                  {children}
+                                </td>
+                              ),
+                              code: ({inline, children}) => (
+                                inline
+                                  ? <code className="bg-gray-100 px-1 py-0.5 rounded text-xs sm:text-sm font-mono text-purple-600">{children}</code>
+                                  : <div className="overflow-x-auto -mx-3 sm:mx-0 my-2 sm:my-3">
+                                      <pre className="bg-gray-900 text-gray-100 p-3 sm:p-4 rounded-lg font-mono text-xs sm:text-sm">
+                                        <code>{children}</code>
+                                      </pre>
+                                    </div>
+                              ),
+                              hr: () => (
+                                <hr className="my-4 sm:my-6 border-t-2 border-gray-200" />
                               ),
                               strong: ({children}) => (
                                 <strong className="font-bold text-purple-600">
@@ -472,8 +532,10 @@ export function SmartChatInterface({ assistant }) {
                           )}
                         </div>
                         {message.chartHtml && !message.isStreaming && (
-                          <div className="mt-4">
-                            <div dangerouslySetInnerHTML={{ __html: message.chartHtml }} />
+                          <div className="mt-3 sm:mt-4 -mx-3 sm:mx-0">
+                            <div className="overflow-x-auto">
+                              <div dangerouslySetInnerHTML={{ __html: message.chartHtml }} />
+                            </div>
                           </div>
                         )}
                       </>
@@ -487,32 +549,35 @@ export function SmartChatInterface({ assistant }) {
         </div>
 
         {/* Input Area */}
-        <div className="border-t bg-white p-4">
-          <form onSubmit={handleSubmit} className="flex gap-3 max-w-3xl mx-auto">
+        <div className="border-t bg-white p-3 sm:p-4">
+          <form onSubmit={handleSubmit} className="flex gap-2 sm:gap-3 max-w-3xl mx-auto">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={`Ask ${assistant.name} anything...`}
-              className="flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition"
+              placeholder={`Ask ${assistant.name}...`}
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition text-sm sm:text-base"
               rows="1"
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className={`px-6 py-3 rounded-xl font-medium flex items-center gap-2 transition ${
+              className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium flex items-center justify-center transition min-w-[44px] ${
                 input.trim() && !isLoading
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg transform hover:scale-105'
+                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg sm:transform sm:hover:scale-105'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <Loader2 className="h-4 w-4 sm:h-5 sm:w-5 animate-spin" />
               ) : (
-                <Send className="h-5 w-5" />
+                <Send className="h-4 w-4 sm:h-5 sm:w-5" />
               )}
+              <span className="hidden sm:inline-block ml-2">
+                {isLoading ? '' : ''}
+              </span>
             </button>
           </form>
         </div>
