@@ -36,7 +36,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
         <div className="w-full max-w-md">
           <a href="/" className="flex items-center gap-2 mb-8">
-            <TrendingUp className="h-10 w-10 text-purple-600" />
+            <TrendingUp className="h-10 w-10 text-blue-700" />
             <span className="text-3xl font-bold gradient-text">FinanceAI</span>
           </a>
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                   placeholder="you@example.com"
                   required
                 />
@@ -77,7 +77,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-600 focus:border-transparent"
                   placeholder="••••••••"
                   required
                 />
@@ -93,10 +93,10 @@ export default function LoginPage() {
 
             <div className="flex items-center justify-between">
               <label className="flex items-center">
-                <input type="checkbox" className="rounded border-gray-300 text-purple-600 focus:ring-purple-500" />
+                <input type="checkbox" className="rounded border-gray-300 text-blue-700 focus:ring-blue-600" />
                 <span className="ml-2 text-sm text-gray-600">Remember me</span>
               </label>
-              <a href="#" className="text-sm text-purple-600 hover:text-purple-500">
+              <a href="#" className="text-sm text-blue-700 hover:text-blue-800">
                 Forgot password?
               </a>
             </div>
@@ -113,7 +113,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center">
             <p className="text-gray-600">
               Don't have an account?{' '}
-              <a href="/signup" className="text-purple-600 font-semibold hover:text-purple-500">
+              <a href="/signup" className="text-blue-700 font-semibold hover:text-blue-800">
                 Sign up
               </a>
             </p>

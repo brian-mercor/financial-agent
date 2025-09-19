@@ -60,7 +60,7 @@ export function AssistantSelector({ selectedAssistant, onSelectAssistant }) {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200 hover:border-purple-300 transition shadow-sm hover:shadow-md"
+        className="w-full flex items-center justify-between px-4 py-3 bg-white rounded-xl border border-gray-200 hover:border-blue-400 transition shadow-sm hover:shadow-md"
       >
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${selectedAssistant.color}`}>
@@ -87,7 +87,7 @@ export function AssistantSelector({ selectedAssistant, onSelectAssistant }) {
                     onSelectAssistant(profile)
                     setIsOpen(false)
                   }}
-                  className="w-full px-4 py-3 hover:bg-purple-50 transition flex items-center gap-3 border-b border-gray-100 last:border-b-0"
+                  className="w-full px-4 py-3 hover:bg-blue-50 transition flex items-center gap-3 border-b border-gray-100 last:border-b-0"
                 >
                   <div className={`p-2 rounded-lg ${profile.color}`}>
                     <ProfileIcon className="h-4 w-4 text-white" />

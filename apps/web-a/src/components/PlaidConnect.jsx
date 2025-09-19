@@ -36,7 +36,7 @@ export function PlaidConnect({ onSuccess, onExit }) {
   if (!token) {
     return (
       <div className="text-center py-4">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mx-auto"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
         <p className="text-sm text-gray-500 mt-2">Loading...</p>
       </div>
     )

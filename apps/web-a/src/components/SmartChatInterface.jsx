@@ -199,7 +199,7 @@ export function SmartChatInterface({ assistant }) {
                         </li>
                       ),
                       blockquote: ({children}) => (
-                        <blockquote className="border-l-4 border-purple-500 pl-4 my-4 italic text-gray-700 bg-purple-50 py-2 pr-4 rounded-r">
+                        <blockquote className="border-l-4 border-blue-500 pl-4 my-4 italic text-gray-700 bg-blue-50 py-2 pr-4 rounded-r">
                           {children}
                         </blockquote>
                       ),
@@ -222,14 +222,14 @@ export function SmartChatInterface({ assistant }) {
                       ),
                       code: ({inline, children}) => (
                         inline
-                          ? <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-purple-600">{children}</code>
+                          ? <code className="bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono text-blue-800">{children}</code>
                           : <code className="block bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto font-mono text-sm">{children}</code>
                       ),
                       hr: () => (
                         <hr className="my-8 border-t-2 border-gray-200" />
                       ),
                       strong: ({children}) => (
-                        <strong className="font-bold text-purple-600">
+                        <strong className="font-bold text-blue-800">
                           {children}
                         </strong>
                       ),
@@ -238,7 +238,7 @@ export function SmartChatInterface({ assistant }) {
                     {selectedReport.content || (selectedReport.isStreaming ? 'Generating report...' : '')}
                   </ReactMarkdown>
                   {selectedReport.isStreaming && (
-                    <span className="inline-block ml-1 animate-pulse text-purple-500">▊</span>
+                    <span className="inline-block ml-1 animate-pulse text-blue-800">▊</span>
                   )}
                 </div>
 
@@ -270,7 +270,7 @@ export function SmartChatInterface({ assistant }) {
                     onClick={() => setSelectedReport(report)}
                     className={`px-3 py-2 rounded-lg text-sm whitespace-nowrap transition ${
                       selectedReport?.id === report.id
-                        ? 'bg-purple-500 text-white'
+                        ? 'bg-blue-700 text-white'
                         : 'bg-white text-gray-700 hover:bg-gray-100'
                     }`}
                   >
@@ -285,7 +285,7 @@ export function SmartChatInterface({ assistant }) {
         {/* Right Panel - Chat */}
         <div className="w-96 flex flex-col bg-white">
           {/* Chat Header */}
-          <div className="p-4 border-b bg-gradient-to-r from-purple-500 to-indigo-600">
+          <div className="p-4 border-b bg-gradient-to-r from-blue-700 to-blue-900">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-white/20 rounded-lg">
                 <assistant.icon className="h-5 w-5 text-white" />
@@ -311,7 +311,7 @@ export function SmartChatInterface({ assistant }) {
                   }`}>
                     <div className={`p-1.5 rounded-full flex-shrink-0 ${
                       message.role === 'user'
-                        ? 'bg-purple-500'
+                        ? 'bg-blue-700'
                         : assistant.color
                     }`}>
                       {message.role === 'user' ? (
@@ -322,7 +322,7 @@ export function SmartChatInterface({ assistant }) {
                     </div>
                     <div className={`px-3 py-2 rounded-lg max-w-[85%] ${
                       message.role === 'user'
-                        ? 'bg-purple-500 text-white'
+                        ? 'bg-blue-700 text-white'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
                       {message.role === 'user' ? (
@@ -349,7 +349,7 @@ export function SmartChatInterface({ assistant }) {
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Ask a question..."
-                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none"
                 rows="2"
                 disabled={isLoading}
               />
@@ -358,7 +358,7 @@ export function SmartChatInterface({ assistant }) {
                 disabled={!input.trim() || isLoading}
                 className={`px-3 py-2 rounded-lg transition ${
                   input.trim() && !isLoading
-                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                    ? 'bg-blue-700 text-white hover:bg-blue-800'
                     : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                 }`}
               >
@@ -392,7 +392,7 @@ export function SmartChatInterface({ assistant }) {
                 {assistant.expertise.map((skill, index) => (
                   <span
                     key={index}
-                    className="px-2 py-1 sm:px-3 bg-purple-100 text-purple-700 rounded-full text-xs sm:text-sm"
+                    className="px-2 py-1 sm:px-3 bg-blue-100 text-blue-800 rounded-full text-xs sm:text-sm"
                   >
                     {skill}
                   </span>
@@ -410,7 +410,7 @@ export function SmartChatInterface({ assistant }) {
                   <div className="flex items-center gap-2 sm:gap-3 w-full mb-2">
                     <div className={`p-1.5 sm:p-2 rounded-lg flex-shrink-0 ${
                       message.role === 'user'
-                        ? 'bg-purple-500'
+                        ? 'bg-blue-700'
                         : assistant.color
                     }`}>
                       {message.role === 'user' ? (
@@ -432,7 +432,7 @@ export function SmartChatInterface({ assistant }) {
                   {/* Message Content */}
                   <div className={`w-full rounded-xl p-3 sm:p-4 ${
                     message.role === 'user'
-                      ? 'bg-purple-50 border border-purple-200'
+                      ? 'bg-blue-50 border border-blue-200'
                       : 'bg-white shadow-md border border-gray-200'
                   }`}>
                     {message.role === 'user' ? (
@@ -483,7 +483,7 @@ export function SmartChatInterface({ assistant }) {
                                 </p>
                               ),
                               blockquote: ({children}) => (
-                                <blockquote className="border-l-3 sm:border-l-4 border-purple-500 pl-3 sm:pl-4 my-2 sm:my-3 italic text-gray-700 bg-purple-50 py-1.5 sm:py-2 pr-3 sm:pr-4 rounded-r text-sm sm:text-base">
+                                <blockquote className="border-l-3 sm:border-l-4 border-blue-500 pl-3 sm:pl-4 my-2 sm:my-3 italic text-gray-700 bg-blue-50 py-1.5 sm:py-2 pr-3 sm:pr-4 rounded-r text-sm sm:text-base">
                                   {children}
                                 </blockquote>
                               ),
@@ -508,7 +508,7 @@ export function SmartChatInterface({ assistant }) {
                               ),
                               code: ({inline, children}) => (
                                 inline
-                                  ? <code className="bg-gray-100 px-1 py-0.5 rounded text-xs sm:text-sm font-mono text-purple-600">{children}</code>
+                                  ? <code className="bg-gray-100 px-1 py-0.5 rounded text-xs sm:text-sm font-mono text-blue-800">{children}</code>
                                   : <div className="overflow-x-auto -mx-3 sm:mx-0 my-2 sm:my-3">
                                       <pre className="bg-gray-900 text-gray-100 p-3 sm:p-4 rounded-lg font-mono text-xs sm:text-sm">
                                         <code>{children}</code>
@@ -519,7 +519,7 @@ export function SmartChatInterface({ assistant }) {
                                 <hr className="my-4 sm:my-6 border-t-2 border-gray-200" />
                               ),
                               strong: ({children}) => (
-                                <strong className="font-bold text-purple-600">
+                                <strong className="font-bold text-blue-800">
                                   {children}
                                 </strong>
                               ),
@@ -528,7 +528,7 @@ export function SmartChatInterface({ assistant }) {
                             {message.content || (message.isStreaming ? '...' : '')}
                           </ReactMarkdown>
                           {message.isStreaming && (
-                            <span className="inline-block ml-1 animate-pulse text-purple-500">▊</span>
+                            <span className="inline-block ml-1 animate-pulse text-blue-800">▊</span>
                           )}
                         </div>
                         {message.chartHtml && !message.isStreaming && (
@@ -557,7 +557,7 @@ export function SmartChatInterface({ assistant }) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={`Ask ${assistant.name}...`}
-              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none transition text-sm sm:text-base"
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg sm:rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-600 focus:border-transparent resize-none transition text-sm sm:text-base"
               rows="1"
               disabled={isLoading}
             />
@@ -566,7 +566,7 @@ export function SmartChatInterface({ assistant }) {
               disabled={!input.trim() || isLoading}
               className={`px-3 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium flex items-center justify-center transition min-w-[44px] ${
                 input.trim() && !isLoading
-                  ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-lg sm:transform sm:hover:scale-105'
+                  ? 'bg-gradient-to-r from-blue-700 to-blue-900 text-white hover:shadow-lg sm:transform sm:hover:scale-105'
                   : 'bg-gray-300 text-gray-500 cursor-not-allowed'
               }`}
             >
