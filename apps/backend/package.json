@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Fin Agent backend with Mastra AI framework",
   "scripts": {
-    "postinstall": "npx motia install",
+    "postinstall": "npx motia install || echo 'Motia install failed, will retry during startup'",
     "dev": "npx motia dev",
     "generate-types": "npx motia generate-types",
     "build": "npx motia build",

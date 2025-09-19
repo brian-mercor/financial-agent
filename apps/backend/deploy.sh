@@ -75,29 +75,38 @@ fi
 if [ -e "$DEPLOYMENT_TARGET/package.json" ]; then
   cd "$DEPLOYMENT_TARGET"
   echo "Installing npm packages for Motia backend..."
-  npm ci --only=production
+  npm ci --production || npm install --production
   exitWithMessageOnError "npm failed"
   cd - > /dev/null
 fi
 
-# 3. Install Motia globally for Azure
+# 3. Initialize Motia project
 cd "$DEPLOYMENT_TARGET"
-echo "Installing Motia CLI globally..."
-npm install -g motia@0.6.4-beta.130
-exitWithMessageOnError "Motia CLI installation failed"
+echo "Initializing Motia project..."
+if [ ! -d ".motia" ]; then
+  npx motia install
+  exitWithMessageOnError "Motia initialization failed"
+fi
 
 # 4. Build Motia project
 echo "Building Motia backend..."
-motia build
+npx motia build
 exitWithMessageOnError "Motia build failed"
 cd - > /dev/null
 
-# 5. Create startup script
-echo "Creating startup script..."
-cat > "$DEPLOYMENT_TARGET/startup.sh" <<'EOF'
+# 5. Make existing startup script executable
+if [ -f "$DEPLOYMENT_TARGET/startup.sh" ]; then
+  echo "Making startup script executable..."
+  chmod +x "$DEPLOYMENT_TARGET/startup.sh"
+else
+  echo "Creating startup script..."
+  cat > "$DEPLOYMENT_TARGET/startup.sh" <<'EOF'
 #!/bin/bash
-motia start --port $PORT --host 0.0.0.0
+cd /home/site/wwwroot
+PORT=${WEBSITES_PORT:-${PORT:-8080}}
+exec npx motia start --port $PORT --host 0.0.0.0
 EOF
-chmod +x "$DEPLOYMENT_TARGET/startup.sh"
+  chmod +x "$DEPLOYMENT_TARGET/startup.sh"
+fi
 
 echo "Finished successfully."
