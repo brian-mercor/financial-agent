@@ -2,8 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { Send, Loader2, User, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { AgentStatusPanel } from './AgentStatusPanel'
-import { ChartRenderer } from './ChartRenderer'
 import { apiService } from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
@@ -142,7 +140,6 @@ export function SmartChatInterface({ assistant }) {
     <div className="flex flex-col h-full bg-gray-50">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {activeWorkflow && <AgentStatusPanel workflow={activeWorkflow} />}
 
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center">
@@ -198,14 +195,6 @@ export function SmartChatInterface({ assistant }) {
                             <span className="inline-block ml-1 animate-pulse">▊</span>
                           )}
                         </div>
-                        {message.chartHtml && !message.isStreaming && (
-                          <div className="mt-4">
-                            <ChartRenderer
-                              chartHtml={message.chartHtml}
-                              height="400px"
-                            />
-                          </div>
-                        )}
                       </>
                     )}
                   </div>
