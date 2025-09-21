@@ -70,6 +70,22 @@ const assistantProfiles: AssistantProfile[] = [
     icon: Globe,
     expertise: ['Economic Trends', 'Policy Impact', 'Market Cycles'],
   },
+  {
+    id: 'quantAnalyst',
+    name: 'Quantitative Analyst',
+    description: 'Mathematical models and algorithmic trading strategies',
+    color: 'bg-cyan-500',
+    icon: Brain,
+    expertise: ['Quant Models', 'Algorithmic Trading', 'Statistical Analysis'],
+  },
+  {
+    id: 'cryptoExpert',
+    name: 'Crypto Expert',
+    description: 'Cryptocurrency markets and blockchain analysis',
+    color: 'bg-yellow-500',
+    icon: DollarSign,
+    expertise: ['Crypto Markets', 'DeFi', 'Blockchain Analysis'],
+  },
 ];
 
 interface AssistantSelectorProps {
