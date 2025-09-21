@@ -1,0 +1,44 @@
+---
+// Navbar component
+---
+
+<header class="nav">
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <span>FinAgent</span>
+    </div>
+    <nav class="navlinks" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#docs">Documentation</a>
+      <a href="https://github.com/finagent/finagent">GitHub</a>
+    </nav>
+    <button class="mobile-toggle" id="mobileToggle" aria-expanded="false" aria-controls="mobileMenu">
+      Menu
+    </button>
+    <a class="cta" href="#get-started">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+        <path d="M5 12h14M13 5l7 7-7 7" stroke="#041018" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Get Started
+    </a>
+  </div>
+  <div id="mobileMenu" style="display:none; border-top:1px solid var(--border); padding:10px 16px;">
+    <a href="#features" style="display:block; padding:10px 0; color:var(--muted)">Features</a>
+    <a href="#architecture" style="display:block; padding:10px 0; color:var(--muted)">Architecture</a>
+    <a href="#docs" style="display:block; padding:10px 0; color:var(--muted)">Documentation</a>
+    <a href="https://github.com/finagent/finagent" style="display:block; padding:10px 0; color:var(--muted)">GitHub</a>
+  </div>
+</header>
+
+<script>
+  const toggle = document.getElementById('mobileToggle');
+  const menu = document.getElementById('mobileMenu');
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = menu?.style.display !== 'none';
+    if (menu) menu.style.display = isOpen ? 'none' : 'block';
+    toggle?.setAttribute('aria-expanded', String(!isOpen));
+  });
+</script>
