@@ -128,8 +128,7 @@ import ChatDemo from '../components/ChatDemo.astro';
                 <li>Process events from multiple sources</li>
               </ul>
               <div class="code-preview">
-                <code>
-// Event-driven agent coordination
+                <code>{`// Event-driven agent coordination
 agent.on('user.query', async (data) => {
   const agents = await orchestrator.dispatch([
     'sentiment-analyzer',
@@ -137,8 +136,7 @@ agent.on('user.query', async (data) => {
     'response-generator'
   ]);
   return agents.aggregate();
-});
-                </code>
+});`}</code>
               </div>
             </div>
 
@@ -155,14 +153,12 @@ agent.on('user.query', async (data) => {
                 <li>Polyglot development</li>
               </ul>
               <div class="code-preview">
-                <code>
-// Microservice agent deployment
+                <code>{`// Microservice agent deployment
 const agentService = new FinAgent.Service({
   name: 'nlp-processor',
   scaling: { min: 2, max: 100 },
   resources: { memory: '2GB', cpu: '1000m' }
-});
-                </code>
+});`}</code>
               </div>
             </div>
           </div>

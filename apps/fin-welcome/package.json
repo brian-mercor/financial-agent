@@ -1,8 +1,7 @@
 {
-  "name": "@monorepo/fin-welcome",
-  "version": "0.1.0",
-  "private": true,
+  "name": "fin-welcome",
   "type": "module",
+  "version": "0.0.1",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
@@ -10,9 +9,6 @@
     "astro": "astro"
   },
   "dependencies": {
-    "astro": "^4.3.5"
-  },
-  "devDependencies": {
-    "@types/node": "^20.11.6"
+    "astro": "^5.13.7"
   }
 }
