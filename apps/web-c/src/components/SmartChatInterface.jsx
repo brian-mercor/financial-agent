@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { ChartRenderer } from './ChartRenderer'
 import { apiService } from '../services/api.service'
 
 export function SmartChatInterface({ assistant }) {
@@ -46,8 +45,6 @@ export function SmartChatInterface({ assistant }) {
 
     try {
       let fullContent = ''
-      let chartHtml = null
-      let hasChart = false
 
       // Use streaming API
       const response = await apiService.streamMessage(
@@ -75,11 +72,6 @@ export function SmartChatInterface({ assistant }) {
                   : msg
               ))
             } else if (chunk.type === 'complete') {
-              // Handle complete response with chart
-              if (chunk.chartHtml) {
-                chartHtml = chunk.chartHtml
-                hasChart = true
-              }
               if (chunk.response) {
                 fullContent = chunk.response
               }
@@ -94,8 +86,6 @@ export function SmartChatInterface({ assistant }) {
           ? {
               ...msg,
               content: fullContent || response?.response || response?.message || response?.content || 'No response received',
-              chartHtml: chartHtml || response?.chartHtml,
-              hasChart: hasChart || response?.hasChart,
               isStreaming: false
             }
           : msg
@@ -159,14 +149,6 @@ export function SmartChatInterface({ assistant }) {
                           <span className="inline-block ml-1 animate-pulse">▊</span>
                         )}
                       </div>
-                      {message.chartHtml && !message.isStreaming && (
-                        <div className="mt-4">
-                          <ChartRenderer
-                            chartHtml={message.chartHtml}
-                            height="400px"
-                          />
-                        </div>
-                      )}
                     </>
                   )}
                   <div className="text-xs font-mono mt-2 opacity-50">

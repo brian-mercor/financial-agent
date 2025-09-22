@@ -56,7 +56,6 @@ export const apiService = {
 
     return new Promise((resolve, reject) => {
       let fullContent = ''
-      let chartHtml = null
 
       // Connect to the stream
       motiaStreamClient.connect(streamName, streamId, { autoReconnect: true })
@@ -85,8 +84,7 @@ export const apiService = {
             resolve({
               response: data.response || fullContent,
               provider: data.provider,
-              model: data.model,
-              chartHtml
+              model: data.model
             })
             break
 
@@ -95,11 +93,6 @@ export const apiService = {
             unsubscribe()
             motiaStreamClient.disconnect(streamName, streamId)
             reject(new Error(data.error || 'Stream error'))
-            break
-
-          case 'chart':
-            chartHtml = data.chartHtml
-            onChunk({ type: 'chart', chartHtml })
             break
         }
       })

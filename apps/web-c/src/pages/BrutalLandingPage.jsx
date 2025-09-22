@@ -6,6 +6,7 @@ export default function BrutalLandingPage() {
   useEffect(() => {
     // Store chart instance for cleanup
     let chartInstance = null;
+
     // Year
     document.getElementById('year').textContent = new Date().getFullYear()
 
@@ -152,6 +153,10 @@ export default function BrutalLandingPage() {
 
     // Main Chart
     const ctx = document.getElementById('chart')
+    // Destroy existing chart if it exists
+    if (Chart.getChart(ctx)) {
+      Chart.getChart(ctx).destroy();
+    }
     chartInstance = new Chart(ctx, {
       type: 'line',
       data: {
@@ -207,7 +212,7 @@ export default function BrutalLandingPage() {
         }
       }
     })
-    
+
     // Cleanup function to destroy chart on unmount
     return () => {
       if (chartInstance) {
