@@ -1,6 +1,23 @@
-import type { EventRouteConfig, Handlers } from '../types'
+import { z } from 'zod';
+import type { EventConfig, Handlers } from 'motia';
 
-export const config: EventRouteConfig = {
+const inputSchema = z.object({
+  workflowId: z.string(),
+  userId: z.string().optional(),
+  streamKey: z.string().optional(), // WebSocket stream key
+  type: z.string().optional(),
+  stepIndex: z.number().optional(),
+  agent: z.string().optional(),
+  task: z.string().optional(),
+  data: z.any().optional(),
+  results: z.any().optional(),
+  message: z.string().optional(),
+  progress: z.number().optional(),
+  error: z.string().optional(),
+  timestamp: z.string().optional(),
+});
+
+export const config: EventConfig = {
   type: 'event',
   name: 'WorkflowWSRelay',
   subscribes: [
@@ -11,47 +28,33 @@ export const config: EventRouteConfig = {
     'workflow.completed',
     'workflow.error',
   ],
-  input: {
-    workflowId: 'string',
-    userId: 'string?',
-    streamKey: 'string?', // WebSocket stream key
-    type: 'string?',
-    stepIndex: 'number?',
-    agent: 'string?',
-    task: 'string?',
-    data: 'any?',
-    results: 'any?',
-    message: 'string?',
-    progress: 'number?',
-    error: 'string?',
-    timestamp: 'string?',
-  },
+  input: inputSchema,
   emits: [],
-}
+};
 
 export const handler: Handlers['WorkflowWSRelay'] = async (event, { logger, streams }) => {
-  const { workflowId, streamKey, type, ...eventData } = event
+  const { workflowId, streamKey, type, ...eventData } = event;
 
   try {
     // Check if streams are available
     if (!streams) {
-      logger.warn('Streams context not available for workflow relay')
-      return
+      logger.warn('Streams context not available for workflow relay');
+      return;
     }
 
     // Determine which stream to use
-    const targetStreamKey = streamKey || `workflow-${workflowId}`
+    const targetStreamKey = streamKey || `workflow-${workflowId}`;
 
     logger.info('Relaying workflow event to WebSocket stream', { 
       workflowId, 
       streamKey: targetStreamKey, 
       eventType: type 
-    })
+    });
 
     // Send the workflow update to the WebSocket stream
     // Check if a workflow stream exists and use it
     if (streams && streams['workflow-updates']) {
-      const messageId = `${workflowId}-${Date.now()}`
+      const messageId = `${workflowId}-${Date.now()}`;
       await streams['workflow-updates'].set(
         targetStreamKey,
         messageId,
@@ -63,9 +66,9 @@ export const handler: Handlers['WorkflowWSRelay'] = async (event, { logger, stre
           ...eventData,
           timestamp: eventData.timestamp || new Date().toISOString(),
         }
-      )
+      );
     } else {
-      logger.warn('Workflow updates stream not configured', { workflowId })
+      logger.warn('Workflow updates stream not configured', { workflowId });
     }
 
   } catch (error) {
@@ -73,6 +76,6 @@ export const handler: Handlers['WorkflowWSRelay'] = async (event, { logger, stre
       error: error instanceof Error ? error.message : 'Unknown error',
       workflowId,
       streamKey,
-    })
+    });
   }
-}
+};

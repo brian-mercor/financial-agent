@@ -29,7 +29,14 @@ export class LLMService {
   }
 
   private initializeClients() {
-    console.log('[LLMService] Initializing LLM clients', {
+    // Check for .env file existence
+    const envFileExists = require('fs').existsSync('/root/repo/apps/backend/.env');
+
+    console.log('[LLMService] ===========================================');
+    console.log('[LLMService] LLM Service Initialization Status');
+    console.log('[LLMService] ===========================================');
+    console.log('[LLMService] .env file exists:', envFileExists ? 'YES ✓' : 'NO ✗ (create from .env.example)');
+    console.log('[LLMService] Checking API providers:', {
       hasGroqKey: !!process.env.GROQ_API_KEY,
       hasOpenAIKey: !!process.env.OPENAI_API_KEY,
       hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
@@ -37,16 +44,22 @@ export class LLMService {
       azureDeployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT
     });
 
+    // Track configured providers
+    let configuredProviders = [];
+
     // Initialize Groq client
     if (process.env.GROQ_API_KEY) {
       try {
         this.groqClient = new Groq({
           apiKey: process.env.GROQ_API_KEY,
         });
-        console.log('[LLMService] Groq client initialized');
+        console.log('[LLMService] ✓ Groq client initialized successfully');
+        configuredProviders.push('Groq');
       } catch (error) {
-        console.error('[LLMService] Failed to initialize Groq client:', error);
+        console.error('[LLMService] ✗ Failed to initialize Groq client:', error);
       }
+    } else {
+      console.log('[LLMService] ✗ Groq: No API key found (set GROQ_API_KEY in .env)');
     }
 
     // Initialize OpenAI client
@@ -55,10 +68,13 @@ export class LLMService {
         this.openaiClient = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
-        console.log('[LLMService] OpenAI client initialized');
+        console.log('[LLMService] ✓ OpenAI client initialized successfully');
+        configuredProviders.push('OpenAI');
       } catch (error) {
-        console.error('[LLMService] Failed to initialize OpenAI client:', error);
+        console.error('[LLMService] ✗ Failed to initialize OpenAI client:', error);
       }
+    } else {
+      console.log('[LLMService] ✗ OpenAI: No API key found (set OPENAI_API_KEY in .env)');
     }
 
     // Initialize Azure OpenAI client
@@ -78,15 +94,42 @@ export class LLMService {
         baseURL
       });
 
-      this.azureClient = new OpenAI({
-        apiKey: process.env.AZURE_OPENAI_API_KEY,
-        baseURL,
-        defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview' },
-        defaultHeaders: {
-          'api-key': process.env.AZURE_OPENAI_API_KEY,
-        },
-      });
+      try {
+        this.azureClient = new OpenAI({
+          apiKey: process.env.AZURE_OPENAI_API_KEY,
+          baseURL,
+          defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview' },
+          defaultHeaders: {
+            'api-key': process.env.AZURE_OPENAI_API_KEY,
+          },
+        });
+        console.log('[LLMService] ✓ Azure OpenAI client initialized successfully');
+        configuredProviders.push('Azure OpenAI');
+      } catch (error) {
+        console.error('[LLMService] ✗ Failed to initialize Azure OpenAI client:', error);
+      }
+    } else {
+      if (!process.env.AZURE_OPENAI_API_KEY) {
+        console.log('[LLMService] ✗ Azure: No API key found (set AZURE_OPENAI_API_KEY in .env)');
+      }
+      if (!process.env.AZURE_OPENAI_ENDPOINT) {
+        console.log('[LLMService] ✗ Azure: No endpoint found (set AZURE_OPENAI_ENDPOINT in .env)');
+      }
     }
+
+    // Summary
+    console.log('[LLMService] ===========================================');
+    if (configuredProviders.length > 0) {
+      console.log('[LLMService] ✓ READY: Configured providers:', configuredProviders.join(', '));
+    } else {
+      console.log('[LLMService] ⚠️  WARNING: No LLM providers configured!');
+      console.log('[LLMService] ⚠️  Chat will NOT work without at least one provider.');
+      console.log('[LLMService] ⚠️  ACTION REQUIRED:');
+      console.log('[LLMService] ⚠️  1. Copy .env.example to .env');
+      console.log('[LLMService] ⚠️  2. Add at least one API key (Groq recommended for free tier)');
+      console.log('[LLMService] ⚠️  3. Restart the backend');
+    }
+    console.log('[LLMService] ===========================================');
   }
 
   async process(
@@ -187,13 +230,9 @@ export class LLMService {
       }
     }
 
-    // No providers configured - return mock response
-    return {
-      content: `[${assistantType.toUpperCase()} ASSISTANT]\n\nI'm responding to your message: "${message}"\n\nTo enable AI responses, please configure an LLM provider (Groq, Azure OpenAI, or OpenAI) in your environment variables.`,
-      provider: 'mock',
-      model: 'none',
-      tokensUsed: 0,
-    };
+    // No providers configured - throw error
+    console.error('[LLMService] CRITICAL: No LLM providers configured!');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
   }
 
   async processWithStreaming(
@@ -388,7 +427,89 @@ export class LLMService {
       }
     }
 
-    throw new Error('No LLM providers configured');
+    // No providers configured - throw error
+    console.error('[LLMService] CRITICAL: No LLM providers configured for streaming!');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
+  }
+
+  private getMockResponse(message: string, assistantType: string): LLMResponse {
+    // MOCK: This is a mock response for development/testing
+    const mockResponses: Record<string, string> = {
+      general: `I understand you're asking about: "${message}".
+
+As a MOCK assistant (no LLM API configured), I can provide this test response to verify the chat interface is working correctly.
+
+To enable real AI responses:
+1. Add your API key to /apps/backend/.env
+2. Choose from: GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY
+3. Restart the backend server
+
+The system is functioning properly - this mock response confirms the chat pipeline is operational.`,
+
+      analyst: `[MOCK Financial Analyst Response]
+
+Analyzing your query: "${message}"
+
+📊 Market Overview (Mock Data):
+• S&P 500: +0.45%
+• NASDAQ: +0.62%
+• VIX: 14.2 (low volatility)
+
+This is a mock response. Configure an LLM provider in .env for real analysis.`,
+
+      trader: `[MOCK Trader Response]
+
+Trading perspective on: "${message}"
+
+📈 Mock Trading Signal:
+• Trend: Bullish (mock)
+• Support: $145 (mock)
+• Resistance: $152 (mock)
+
+Configure LLM API keys for actual trading insights.`,
+
+      advisor: `[MOCK Financial Advisor Response]
+
+Regarding your question: "${message}"
+
+💼 Mock Advisory:
+• Risk Level: Moderate (mock)
+• Suggested Allocation: 60/40 stocks/bonds (mock)
+• Time Horizon: Long-term (mock)
+
+Add API keys to receive personalized financial advice.`,
+
+      riskManager: `[MOCK Risk Manager Response]
+
+Risk assessment for: "${message}"
+
+⚠️ Mock Risk Metrics:
+• VaR (95%): -2.5% (mock)
+• Sharpe Ratio: 1.2 (mock)
+• Max Drawdown: -15% (mock)
+
+Configure LLM providers for actual risk analysis.`,
+
+      economist: `[MOCK Economist Response]
+
+Economic perspective on: "${message}"
+
+📉 Mock Economic Indicators:
+• GDP Growth: 2.1% (mock)
+• Inflation: 3.2% (mock)
+• Unemployment: 3.8% (mock)
+
+Enable real LLM for comprehensive economic analysis.`
+    };
+
+    const content = mockResponses[assistantType] || mockResponses.general;
+
+    return {
+      content,
+      provider: 'mock',
+      model: `mock-${assistantType}`,
+      tokensUsed: 0,
+    };
   }
 
   private getSystemPrompt(assistantType: string, responseStyle: 'conversational' | 'report' = 'conversational'): string {
