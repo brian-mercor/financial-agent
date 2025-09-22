@@ -188,12 +188,8 @@ export class LLMService {
     }
 
     // No providers configured - return mock response
-    return {
-      content: `[${assistantType.toUpperCase()} ASSISTANT]\n\nI'm responding to your message: "${message}"\n\nTo enable AI responses, please configure an LLM provider (Groq, Azure OpenAI, or OpenAI) in your environment variables.`,
-      provider: 'mock',
-      model: 'none',
-      tokensUsed: 0,
-    };
+    console.log('[LLMService] No LLM providers configured, using mock response');
+    return this.getMockResponse(message, assistantType);
   }
 
   async processWithStreaming(
@@ -388,7 +384,102 @@ export class LLMService {
       }
     }
 
-    throw new Error('No LLM providers configured');
+    // No providers configured - return mock response with streaming simulation
+    console.log('[LLMService] No LLM providers configured, simulating streaming with mock response');
+    const mockResponse = this.getMockResponse(message, assistantType);
+
+    // Simulate streaming by sending tokens
+    const words = mockResponse.content.split(' ');
+    for (let i = 0; i < words.length; i++) {
+      const token = words[i] + (i < words.length - 1 ? ' ' : '');
+      if (this.config.streamCallback) {
+        await this.config.streamCallback(token, { provider: 'mock', model: 'mock-stream' });
+      }
+      // Small delay to simulate streaming
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+
+    return mockResponse;
+  }
+
+  private getMockResponse(message: string, assistantType: string): LLMResponse {
+    // MOCK: This is a mock response for development/testing
+    const mockResponses: Record<string, string> = {
+      general: `I understand you're asking about: "${message}".
+
+As a MOCK assistant (no LLM API configured), I can provide this test response to verify the chat interface is working correctly.
+
+To enable real AI responses:
+1. Add your API key to /apps/backend/.env
+2. Choose from: GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY
+3. Restart the backend server
+
+The system is functioning properly - this mock response confirms the chat pipeline is operational.`,
+
+      analyst: `[MOCK Financial Analyst Response]
+
+Analyzing your query: "${message}"
+
+📊 Market Overview (Mock Data):
+• S&P 500: +0.45%
+• NASDAQ: +0.62%
+• VIX: 14.2 (low volatility)
+
+This is a mock response. Configure an LLM provider in .env for real analysis.`,
+
+      trader: `[MOCK Trader Response]
+
+Trading perspective on: "${message}"
+
+📈 Mock Trading Signal:
+• Trend: Bullish (mock)
+• Support: $145 (mock)
+• Resistance: $152 (mock)
+
+Configure LLM API keys for actual trading insights.`,
+
+      advisor: `[MOCK Financial Advisor Response]
+
+Regarding your question: "${message}"
+
+💼 Mock Advisory:
+• Risk Level: Moderate (mock)
+• Suggested Allocation: 60/40 stocks/bonds (mock)
+• Time Horizon: Long-term (mock)
+
+Add API keys to receive personalized financial advice.`,
+
+      riskManager: `[MOCK Risk Manager Response]
+
+Risk assessment for: "${message}"
+
+⚠️ Mock Risk Metrics:
+• VaR (95%): -2.5% (mock)
+• Sharpe Ratio: 1.2 (mock)
+• Max Drawdown: -15% (mock)
+
+Configure LLM providers for actual risk analysis.`,
+
+      economist: `[MOCK Economist Response]
+
+Economic perspective on: "${message}"
+
+📉 Mock Economic Indicators:
+• GDP Growth: 2.1% (mock)
+• Inflation: 3.2% (mock)
+• Unemployment: 3.8% (mock)
+
+Enable real LLM for comprehensive economic analysis.`
+    };
+
+    const content = mockResponses[assistantType] || mockResponses.general;
+
+    return {
+      content,
+      provider: 'mock',
+      model: `mock-${assistantType}`,
+      tokensUsed: 0,
+    };
   }
 
   private getSystemPrompt(assistantType: string, responseStyle: 'conversational' | 'report' = 'conversational'): string {
