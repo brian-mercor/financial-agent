@@ -1,0 +1,182 @@
+
+> backend@1.0.0 dev
+> npx motia dev
+
+➜ [CREATED] Step (Event) steps/workflow-ws-relay.step.ts created
+➜ [CREATED] Step (Event) steps/workflow-trigger-handler.step.ts created
+➜ [CREATED] Step (API) steps/workflow-stream.step.ts created
+➜ [CREATED] Step (Event) steps/workflow-stream-broadcaster.step.ts created
+➜ [CREATED] Step (API) steps/workflow-status.step.ts created
+➜ [CREATED] Step (Event) steps/workflow-sse-relay.step.ts created
+➜ [CREATED] Step (API) steps/workflow-result.step.ts created
+➜ [CREATED] Step (API) steps/workflow-orchestrator.step.ts created
+➜ [CREATED] Flow market-analysis created
+➜ [CREATED] Flow trading-view created
+➜ [CREATED] Step (API) steps/tradingview-chart.step.ts created
+➜ [CREATED] Flow chat-integration created
+➜ [CREATED] Step (API) steps/symbol-chart-response.step.ts created
+➜ [CREATED] Flow basic-tutorial created
+➜ [CREATED] Step (Cron) steps/state-audit-cron.step.ts created
+➜ [CREATED] Step (Event) steps/sse-broadcaster.step.ts created
+➜ [CREATED] Step (API) steps/save-chat-message.step.ts created
+➜ [CREATED] Step (API) steps/quick-chart.step.ts created
+➜ [CREATED] Step (Event) steps/process-food-order.step.ts created
+➜ [CREATED] Step (Event) steps/process-chart-request.step.ts created
+➜ [CREATED] Flow plaid-integration created
+➜ [CREATED] Step (API) steps/plaid-link.step.ts created
+➜ [CREATED] Step (API) steps/plaid-exchange.step.ts created
+➜ [CREATED] Step (Event) steps/notification.step.ts created
+➜ [CREATED] Step (API) steps/market-data.step.ts created
+➜ [CREATED] Step (API) steps/health.step.ts created
+[ERROR] steps/health-check.step.ts
+│ ✖ emits: Required
+└─ Required  
+➜ [CREATED] Step (API) steps/get-chat-messages.step.ts created
+➜ [CREATED] Step (API) steps/get-chat-history.step.ts created
+➜ [CREATED] Step (API) steps/create-chat-session.step.ts created
+Azure OpenAI credentials not configured. AI features will be limited.
+Groq API key not configured. Fast LLM inference will not be available.
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+➜ [CREATED] Step (API) steps/chat.step.ts created
+Groq API key not configured. Fast LLM inference will not be available.
+Azure OpenAI credentials not configured. AI features will be limited.
+LLM Router initialized with provider: azure-openai, model: gpt-5
+⚠️ WARNING: No LLM providers are configured!
+Please configure at least one of: AZURE_OPENAI_API_KEY, GROQ_API_KEY
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+➜ [CREATED] Step (API) steps/chat-v2.step.ts created
+[RedisPublisher] ioredis not found - Redis publishing will be disabled
+[RedisPublisher] Redis is disabled - using no-op implementation
+➜ [CREATED] Step (API) steps/chat-stream.step.ts created
+Using local secrets storage (development mode)
+Azure OpenAI credentials not configured. AI features will be limited.
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+➜ [CREATED] Step (API) steps/chat-stream-ws.step.ts created
+Rate limiting using memory store
+➜ [CREATED] Step (API) steps/api.step.ts created
+Azure OpenAI credentials not configured. AI features will be limited.
+Using local secrets storage (development mode)
+Mastra telemetry is enabled, but the required instrumentation file was not loaded. If you are using Mastra outside of the mastra server environment, see: https://mastra.ai/en/docs/observability/tracing#tracing-outside-mastra-server-environment If you are using a custom instrumentation file or want to disable this warning, set the globalThis.___MASTRA_TELEMETRY___ variable to true in your instrumentation file.
+Groq API key not configured. Fast LLM inference will not be available.
+➜ [CREATED] Step (Event) steps/agent-executor.step.ts created
+➜ [CREATED] Stream steps/streams/workflow-updates.stream.ts created
+➜ [CREATED] Stream steps/streams/chat-messages.stream.ts created
+[ERROR] Topic workflow.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.progress has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-sse-relay.step.ts
+[ERROR] Topic workflow.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.progress has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-sse-relay.step.ts
+  ✖ steps/agent-executor.step.ts
+[WARNING] Step (API) steps/tradingview-chart.step.ts emits to chart.generated, but there is no subscriber defined
+[WARNING] Step (API) steps/symbol-chart-response.step.ts emits to symbol.chart.requested, but there is no subscriber defined
+[WARNING] Step (API) steps/symbol-chart-response.step.ts emits to symbol.parsed, but there is no subscriber defined
+[WARNING] Step (API) steps/save-chat-message.step.ts emits to chat.message.saved, but there is no subscriber defined
+[WARNING] Step (API) steps/quick-chart.step.ts emits to quick.chart.served, but there is no subscriber defined
+[WARNING] Step (Event) steps/process-chart-request.step.ts emits to chart.enhanced, but there is no subscriber defined
+[WARNING] Step (Event) steps/process-chart-request.step.ts emits to chart.metadata.fetched, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-link.step.ts emits to plaid.link.created, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-exchange.step.ts emits to plaid.token.exchanged, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-exchange.step.ts emits to plaid.accounts.connected, but there is no subscriber defined
+[WARNING] Step (API) steps/market-data.step.ts emits to market.data.fetched, but there is no subscriber defined
+[WARNING] Step (API) steps/create-chat-session.step.ts emits to chat.session.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat.step.ts emits to chat.message.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-v2.step.ts emits to chat.message.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-v2.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to chat.started, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to chat.completed, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream-ws.step.ts emits to chat.started, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream-ws.step.ts emits to chat.completed, but there is no subscriber defined
+🚀 Server ready and listening on port 3000
+🔗 Open http://localhost:3000 to open workbench 🛠️
+➜ [CREATED] Flow core created
+[ERROR] Topic workflow.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.progress has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+[ERROR] Topic workflow.agent.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-sse-relay.step.ts
+[ERROR] Topic workflow.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.progress has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.completed has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-stream-broadcaster.step.ts
+  ✖ steps/sse-broadcaster.step.ts
+[ERROR] Topic workflow.agent.started has incompatible schemas in the following steps:
+  ✖ steps/workflow-ws-relay.step.ts
+  ✖ steps/workflow-sse-relay.step.ts
+  ✖ steps/agent-executor.step.ts
+[WARNING] Step (API) steps/tradingview-chart.step.ts emits to chart.generated, but there is no subscriber defined
+[WARNING] Step (API) steps/symbol-chart-response.step.ts emits to symbol.chart.requested, but there is no subscriber defined
+[WARNING] Step (API) steps/symbol-chart-response.step.ts emits to symbol.parsed, but there is no subscriber defined
+[WARNING] Step (API) steps/save-chat-message.step.ts emits to chat.message.saved, but there is no subscriber defined
+[WARNING] Step (API) steps/quick-chart.step.ts emits to quick.chart.served, but there is no subscriber defined
+[WARNING] Step (Event) steps/process-chart-request.step.ts emits to chart.enhanced, but there is no subscriber defined
+[WARNING] Step (Event) steps/process-chart-request.step.ts emits to chart.metadata.fetched, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-link.step.ts emits to plaid.link.created, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-exchange.step.ts emits to plaid.token.exchanged, but there is no subscriber defined
+[WARNING] Step (API) steps/plaid-exchange.step.ts emits to plaid.accounts.connected, but there is no subscriber defined
+[WARNING] Step (API) steps/market-data.step.ts emits to market.data.fetched, but there is no subscriber defined
+[WARNING] Step (API) steps/create-chat-session.step.ts emits to chat.session.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat.step.ts emits to chat.message.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-v2.step.ts emits to chat.message.created, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-v2.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to chat.started, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to chat.completed, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream.step.ts emits to symbol.detected, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream-ws.step.ts emits to chat.started, but there is no subscriber defined
+[WARNING] Step (API) steps/chat-stream-ws.step.ts emits to chat.completed, but there is no subscriber defined
+➜ [CREATED] Step (API) steps/health-check.step.ts created
+[3:05:53 AM] SDEX4-0353035 [INFO] HealthCheck Health check requested
