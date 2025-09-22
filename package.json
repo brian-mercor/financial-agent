@@ -10,6 +10,8 @@
     "dev:web-b": "turbo run dev --filter=web-b --filter=backend",
     "dev:web-d": "turbo run dev --filter=web-d --filter=backend",
     "dev:web-e": "turbo run dev --filter=web-e --filter=backend",
+    "dev:web-g": "turbo run dev --filter=web-g --filter=backend",
+    "dev:web-j": "turbo run dev --filter=web-j --filter=backend",
     "dev:fin-welcome": "turbo run dev --filter=fin-welcome",
     "dev:all": "turbo run dev",
     "build": "turbo run build",
