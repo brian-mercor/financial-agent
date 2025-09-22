@@ -187,9 +187,9 @@ export class LLMService {
       }
     }
 
-    // No providers configured - return mock response
-    console.log('[LLMService] No LLM providers configured, using mock response');
-    return this.getMockResponse(message, assistantType);
+    // No providers configured - throw error
+    console.error('[LLMService] CRITICAL: No LLM providers configured!');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
   }
 
   async processWithStreaming(
@@ -384,22 +384,9 @@ export class LLMService {
       }
     }
 
-    // No providers configured - return mock response with streaming simulation
-    console.log('[LLMService] No LLM providers configured, simulating streaming with mock response');
-    const mockResponse = this.getMockResponse(message, assistantType);
-
-    // Simulate streaming by sending tokens
-    const words = mockResponse.content.split(' ');
-    for (let i = 0; i < words.length; i++) {
-      const token = words[i] + (i < words.length - 1 ? ' ' : '');
-      if (this.config.streamCallback) {
-        await this.config.streamCallback(token, { provider: 'mock', model: 'mock-stream' });
-      }
-      // Small delay to simulate streaming
-      await new Promise(resolve => setTimeout(resolve, 20));
-    }
-
-    return mockResponse;
+    // No providers configured - throw error
+    console.error('[LLMService] CRITICAL: No LLM providers configured for streaming!');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
   }
 
   private getMockResponse(message: string, assistantType: string): LLMResponse {
