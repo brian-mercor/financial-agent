@@ -32,10 +32,31 @@ pnpm run postinstall
 # OR manually run:
 ../../node_modules/.pnpm/node_modules/.bin/motia install
 
-# 3. Create .env file
+# 3. Create .env file (NEVER in source control!)
 cp .env.example .env
-# Then add your environment variables
+# Then add your REAL API keys - at least one LLM provider is REQUIRED
 ```
+
+### 🔑 Critical: About .env Files
+
+**The `/apps/backend/.env` file:**
+- **EXISTS locally** with real API keys when properly configured
+- **NEVER checked into GitHub** - this is intentional for security
+- **MUST be created on each machine** from `.env.example` template
+- **REQUIRED for chat/LLM features** - the app will not work without it
+
+**When working across different machines:**
+- You will NOT have `.env` when you first clone - this is expected
+- Check backend logs to see which providers are configured
+- If chat isn't working, first verify `.env` exists and has valid keys
+- Look for these diagnostic messages in logs:
+  ```
+  [LLMService] Initializing LLM clients {
+    hasGroqKey: true,     // ← Shows current configuration
+    hasOpenAIKey: false,
+    hasAzureKey: false
+  }
+  ```
 
 ### Why This Is Necessary
 
