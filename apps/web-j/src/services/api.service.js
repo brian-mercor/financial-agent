@@ -32,16 +32,7 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('API Error:', error);
-
-      // MOCK: Fallback to mock response when backend is not available
-      console.warn('Backend not available, using mock response');
-      return {
-        traceId: `mock-${Date.now()}`,
-        response: `MOCK RESPONSE: The backend service is currently not available. This is a mock response for "${message}". Please ensure the backend is running on http://localhost:3000 to get real AI responses.`,
-        assistantType,
-        llmProvider: 'mock',
-        model: 'mock-model'
-      };
+      throw error;
     }
   }
 
@@ -97,28 +88,7 @@ class ApiService {
       }
     } catch (error) {
       console.error('Stream Error:', error);
-
-      // MOCK: Fallback to mock response when backend is not available
-      console.warn('Backend not available, using mock response');
-
-      // Simulate streaming with a mock response
-      const mockResponse = `MOCK RESPONSE: The backend service is currently not available. This is a mock response for "${message}". Please ensure the backend is running on http://localhost:3000 to get real AI responses.`;
-
-      // Simulate chunked streaming
-      const words = mockResponse.split(' ');
-      for (const word of words) {
-        await new Promise(resolve => setTimeout(resolve, 50)); // Simulate delay
-        onChunk(word + ' ');
-      }
-
-      // Return complete response
-      return {
-        traceId: `mock-${Date.now()}`,
-        response: mockResponse,
-        assistantType,
-        llmProvider: 'mock',
-        model: 'mock-model'
-      };
+      throw error;
     }
   }
 
