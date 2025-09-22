@@ -28,17 +28,29 @@ This app uses a distinctive design system inspired by outsider art:
 ## Quick Start
 
 ```bash
-# Install dependencies
-npm install
+# From the root of the repository
+pnpm install --filter web-e
 
-# Copy environment variables
+# Copy environment variables (if needed)
 cp .env.example .env
 
 # Start development server
-npm run dev
+cd apps/web-e
+pnpm dev
 ```
 
 The app will run on http://localhost:5177
+
+### Important for Monorepo Users
+- **Port**: This app runs on port 5177
+- **Dependencies**: Other apps (like web-d on port 5176) may depend on this server being running
+- **SmartChatInterface**: This component is served from this app and used by the dashboard (web-d)
+
+### Troubleshooting
+
+If the server fails to start:
+1. Ensure dependencies are installed: `pnpm install --filter web-e` from root
+2. If vite command not found, use: `../../node_modules/.pnpm/node_modules/.bin/vite --port 5177`
 
 ## Available Scripts
 
