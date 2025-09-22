@@ -29,7 +29,14 @@ export class LLMService {
   }
 
   private initializeClients() {
-    console.log('[LLMService] Initializing LLM clients', {
+    // Check for .env file existence
+    const envFileExists = require('fs').existsSync('/root/repo/apps/backend/.env');
+
+    console.log('[LLMService] ===========================================');
+    console.log('[LLMService] LLM Service Initialization Status');
+    console.log('[LLMService] ===========================================');
+    console.log('[LLMService] .env file exists:', envFileExists ? 'YES ✓' : 'NO ✗ (create from .env.example)');
+    console.log('[LLMService] Checking API providers:', {
       hasGroqKey: !!process.env.GROQ_API_KEY,
       hasOpenAIKey: !!process.env.OPENAI_API_KEY,
       hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
@@ -37,16 +44,22 @@ export class LLMService {
       azureDeployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT
     });
 
+    // Track configured providers
+    let configuredProviders = [];
+
     // Initialize Groq client
     if (process.env.GROQ_API_KEY) {
       try {
         this.groqClient = new Groq({
           apiKey: process.env.GROQ_API_KEY,
         });
-        console.log('[LLMService] Groq client initialized');
+        console.log('[LLMService] ✓ Groq client initialized successfully');
+        configuredProviders.push('Groq');
       } catch (error) {
-        console.error('[LLMService] Failed to initialize Groq client:', error);
+        console.error('[LLMService] ✗ Failed to initialize Groq client:', error);
       }
+    } else {
+      console.log('[LLMService] ✗ Groq: No API key found (set GROQ_API_KEY in .env)');
     }
 
     // Initialize OpenAI client
@@ -55,10 +68,13 @@ export class LLMService {
         this.openaiClient = new OpenAI({
           apiKey: process.env.OPENAI_API_KEY,
         });
-        console.log('[LLMService] OpenAI client initialized');
+        console.log('[LLMService] ✓ OpenAI client initialized successfully');
+        configuredProviders.push('OpenAI');
       } catch (error) {
-        console.error('[LLMService] Failed to initialize OpenAI client:', error);
+        console.error('[LLMService] ✗ Failed to initialize OpenAI client:', error);
       }
+    } else {
+      console.log('[LLMService] ✗ OpenAI: No API key found (set OPENAI_API_KEY in .env)');
     }
 
     // Initialize Azure OpenAI client
@@ -78,15 +94,42 @@ export class LLMService {
         baseURL
       });
 
-      this.azureClient = new OpenAI({
-        apiKey: process.env.AZURE_OPENAI_API_KEY,
-        baseURL,
-        defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview' },
-        defaultHeaders: {
-          'api-key': process.env.AZURE_OPENAI_API_KEY,
-        },
-      });
+      try {
+        this.azureClient = new OpenAI({
+          apiKey: process.env.AZURE_OPENAI_API_KEY,
+          baseURL,
+          defaultQuery: { 'api-version': process.env.AZURE_OPENAI_API_VERSION || '2024-08-01-preview' },
+          defaultHeaders: {
+            'api-key': process.env.AZURE_OPENAI_API_KEY,
+          },
+        });
+        console.log('[LLMService] ✓ Azure OpenAI client initialized successfully');
+        configuredProviders.push('Azure OpenAI');
+      } catch (error) {
+        console.error('[LLMService] ✗ Failed to initialize Azure OpenAI client:', error);
+      }
+    } else {
+      if (!process.env.AZURE_OPENAI_API_KEY) {
+        console.log('[LLMService] ✗ Azure: No API key found (set AZURE_OPENAI_API_KEY in .env)');
+      }
+      if (!process.env.AZURE_OPENAI_ENDPOINT) {
+        console.log('[LLMService] ✗ Azure: No endpoint found (set AZURE_OPENAI_ENDPOINT in .env)');
+      }
     }
+
+    // Summary
+    console.log('[LLMService] ===========================================');
+    if (configuredProviders.length > 0) {
+      console.log('[LLMService] ✓ READY: Configured providers:', configuredProviders.join(', '));
+    } else {
+      console.log('[LLMService] ⚠️  WARNING: No LLM providers configured!');
+      console.log('[LLMService] ⚠️  Chat will NOT work without at least one provider.');
+      console.log('[LLMService] ⚠️  ACTION REQUIRED:');
+      console.log('[LLMService] ⚠️  1. Copy .env.example to .env');
+      console.log('[LLMService] ⚠️  2. Add at least one API key (Groq recommended for free tier)');
+      console.log('[LLMService] ⚠️  3. Restart the backend');
+    }
+    console.log('[LLMService] ===========================================');
   }
 
   async process(
