@@ -5,7 +5,13 @@
 
 class MotiaStreamClient {
   constructor(baseUrl = '') {
-    this.baseUrl = baseUrl || window.location.origin.replace('http', 'ws')
+    // Always connect to the backend server port (3000), not the dev server port
+    // In production this would be the same origin, but in dev we need to explicitly use port 3000
+    if (!baseUrl && window.location.hostname === 'localhost') {
+      this.baseUrl = 'ws://localhost:3000'
+    } else {
+      this.baseUrl = baseUrl || window.location.origin.replace('http', 'ws')
+    }
     this.connections = new Map()
     this.listeners = new Map()
     this.reconnectAttempts = new Map()
