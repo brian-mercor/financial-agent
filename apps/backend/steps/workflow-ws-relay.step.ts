@@ -1,5 +1,4 @@
-import type { EventRouteConfig, Handlers } from 'motia'
-import { z } from 'zod'
+import type { EventRouteConfig, Handlers } from '../types'
 
 export const config: EventRouteConfig = {
   type: 'event',
@@ -12,21 +11,21 @@ export const config: EventRouteConfig = {
     'workflow.completed',
     'workflow.error',
   ],
-  input: z.object({
-    workflowId: z.string(),
-    userId: z.string().optional(),
-    streamKey: z.string().optional(), // WebSocket stream key
-    type: z.string().optional(),
-    stepIndex: z.number().optional(),
-    agent: z.string().optional(),
-    task: z.string().optional(),
-    data: z.any().optional(),
-    results: z.any().optional(),
-    message: z.string().optional(),
-    progress: z.number().optional(),
-    error: z.string().optional(),
-    timestamp: z.string().optional(),
-  }),
+  input: {
+    workflowId: 'string',
+    userId: 'string?',
+    streamKey: 'string?', // WebSocket stream key
+    type: 'string?',
+    stepIndex: 'number?',
+    agent: 'string?',
+    task: 'string?',
+    data: 'any?',
+    results: 'any?',
+    message: 'string?',
+    progress: 'number?',
+    error: 'string?',
+    timestamp: 'string?',
+  },
   emits: [],
 }
 

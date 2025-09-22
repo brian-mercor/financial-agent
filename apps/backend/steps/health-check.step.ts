@@ -6,6 +6,7 @@ export const config: ApiRouteConfig = {
   method: 'GET',
   path: '/health',
   flows: ['core'],
+  emits: [],
 }
 
 export const handler: Handlers['HealthCheck'] = async (req, { logger }) => {
