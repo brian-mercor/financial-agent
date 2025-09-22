@@ -1,11 +1,8 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import Chart from 'chart.js/auto'
 
 export default function BrutalLandingPage() {
   useEffect(() => {
-    // Store chart instance for cleanup
-    let chartInstance = null;
     // Year
     document.getElementById('year').textContent = new Date().getFullYear()
 
@@ -150,70 +147,9 @@ export default function BrutalLandingPage() {
     sparkline('spark1', [100,105,103,108,112,115,114,118,122,120,125,128,130,135,138,142,145,148])
     sparkline('spark2', [60,62,65,63,68,70,72,74,73,75,74,76,74])
 
-    // Main Chart
-    const ctx = document.getElementById('chart')
-    chartInstance = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'],
-        datasets: [{
-          label: 'Portfolio Value',
-          data: [10000,10500,10200,11000,11800,12200,12800,13500],
-          borderColor: '#FF2D2D',
-          backgroundColor: 'rgba(255,45,45,0.15)',
-          tension: 0.25,
-          fill: true,
-          pointRadius: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            grid: { color: '#2A2A2A' },
-            ticks: { color: '#F5F5F5', font: { family: 'Space Mono' } }
-          },
-          y: {
-            min: 9000, max: 14000,
-            grid: { color: '#2A2A2A' },
-            ticks: {
-              color: '#F5F5F5',
-              font: { family: 'Space Mono' },
-              callback: function(value) {
-                return '$' + value.toLocaleString()
-              }
-            }
-          }
-        },
-        plugins: {
-          legend: {
-            labels: { color: '#F5F5F5', font: { family: 'Space Mono' } }
-          },
-          tooltip: {
-            backgroundColor: '#111111',
-            borderColor: '#2A2A2A',
-            borderWidth: 2,
-            titleColor: '#F5F5F5',
-            bodyColor: '#F5F5F5',
-            titleFont: { family: 'Space Mono' },
-            bodyFont: { family: 'Space Mono' },
-            callbacks: {
-              label: function(context) {
-                return 'Value: $' + context.parsed.y.toLocaleString()
-              }
-            }
-          }
-        }
-      }
-    })
+    // Chart removed for performance optimization
+    // Portfolio chart visualization can be added back with lazy loading if needed
     
-    // Cleanup function to destroy chart on unmount
-    return () => {
-      if (chartInstance) {
-        chartInstance.destroy();
-      }
-    }
   }, [])
 
   return (
@@ -416,7 +352,9 @@ export default function BrutalLandingPage() {
                   </div>
                 </div>
                 <div className="mt-5 bg-brutal-bg border-2 border-brutal-line p-4">
-                  <canvas id="chart" className="w-full h-56"></canvas>
+                  <div className="w-full h-56 bg-brutal-ink border-2 border-brutal-line flex items-center justify-center">
+                    <span className="font-mono text-xs text-gray-500 uppercase">Chart Visualization Disabled</span>
+                  </div>
                 </div>
               </div>
             </div>
