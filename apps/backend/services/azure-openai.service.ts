@@ -6,7 +6,7 @@ import type {
 import { config as dotenvConfig } from 'dotenv';
 
 // Load environment variables
-dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 
 /**
  * Azure OpenAI Service Wrapper

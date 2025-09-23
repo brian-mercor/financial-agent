@@ -28,6 +28,42 @@ This blueprint provides a complete specification for building a financial assist
 - Streaming API responses
 - Professional financial UI/UX
 
+## ⚠️ CRITICAL: Environment Configuration
+
+### Backend Environment Setup
+
+**IMPORTANT**: The backend MUST have proper environment variables configured or the chat features will NOT work.
+
+1. **Environment File Location**: `/apps/backend/.env` (NOT `.env.local`)
+2. **Required Configuration**: At least ONE LLM provider must be configured:
+   - **Azure OpenAI** (Recommended for enterprise):
+     ```bash
+     AZURE_OPENAI_API_KEY=your-actual-key
+     AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com
+     AZURE_OPENAI_DEPLOYMENT_NAME=model-router
+     ```
+   - **Groq** (Recommended for free tier):
+     ```bash
+     GROQ_API_KEY=your-actual-groq-key
+     ```
+
+3. **Verification**: Check backend logs on startup:
+   ```
+   [LLMService] Checking API providers: {
+     hasGroqKey: true,      // ✅ At least one should be true
+     hasAzureKey: true,
+     hasAzureEndpoint: true
+   }
+   ```
+
+   If you see all `false`, the chat will NOT work!
+
+4. **Common Issues**:
+   - ❌ Using `.env.local` instead of `.env`
+   - ❌ Using placeholder keys like "your-api-key-here"
+   - ❌ Missing `.env` file entirely (not in git for security)
+   - ❌ Invalid or expired API keys
+
 ## Core Requirements
 
 ### Technical Stack
@@ -283,78 +319,359 @@ export default {
 
 ## Component Architecture
 
-### 1. API Service (src/services/api.service.js)
-```javascript
-const API_BASE_URL = '/api'
+### 1. API Service - STANDARDIZED IMPLEMENTATION
 
-// Standardized request builder to ensure consistency
-const buildRequestBody = (message, assistantType = 'general', options = {}) => {
-  return {
-    message,
-    assistantType,
-    userId: options.userId || `user-${Date.now()}`,
-    context: options.context || {
-      symbols: [],
-      timeframe: '1d',
-      riskTolerance: 'moderate'
-    },
-    history: options.history || [],
-    stream: options.stream !== undefined ? options.stream : true
+**IMPORTANT**: This is the reference implementation from `web-a`. All frontend apps should follow this pattern for consistent behavior.
+
+#### Streaming Methods Priority:
+1. **Primary**: Motia WebSocket Streaming (Fastest, real-time)
+2. **Fallback**: Polling with simulated streaming
+
+#### Complete API Service with Motia WebSocket Streaming (src/services/api.service.js)
+
+**Note**: This requires the Motia stream client to be set up first (see below).
+
+```javascript
+import { motiaStreamClient } from './motia-stream-client'
+
+class ApiService {
+  constructor() {
+    this.baseUrl = '';
+  }
+
+  async sendMessage(message, assistantType = 'general', history = []) {
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          assistantType,
+          history,
+          userId: `user-${Date.now()}`,
+          context: {
+            symbols: [],
+            timeframe: '1d',
+            riskTolerance: 'moderate',
+          },
+          stream: false
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('API Error:', error);
+      throw error;
+    }
+  }
+
+  async streamMessageMotia(message, assistantType = 'general', history = [], onChunk, responseStyle = 'conversational') {
+    const userId = `user-${Date.now()}`
+
+    try {
+      // First, initiate the streaming request
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          assistantType,
+          history,
+          userId,
+          context: {
+            symbols: [],
+            timeframe: '1d',
+            riskTolerance: 'moderate',
+          },
+          stream: true,
+          responseStyle // Pass the response style preference
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stream error! status: ${response.status}`);
+      }
+
+      const result = await response.json()
+      const traceId = result.traceId
+
+      // Store the immediate response as fallback
+      const immediateResponse = result
+
+      // Connect to Motia stream for this user
+      const streamName = 'chat-messages'
+      const streamId = `user:${userId}`
+
+      return new Promise((resolve, reject) => {
+        let fullContent = ''
+        let chartHtml = immediateResponse.chartHtml || null
+        let hasReceivedTokens = false
+        let resolved = false
+
+        // Connect to the stream
+        motiaStreamClient.connect(streamName, streamId, { autoReconnect: false })
+
+        // Listen for messages
+        const unsubscribe = motiaStreamClient.on(streamName, streamId, 'message', (data) => {
+          console.log('[StreamDebug] Received message:', data)
+
+          // Process messages for this trace or without traceId (for compatibility)
+          if (data.traceId && data.traceId !== traceId) return
+
+          switch (data.type) {
+            case 'token':
+              hasReceivedTokens = true
+              fullContent += data.content || ''
+              onChunk({ chunk: data.content, type: 'token' })
+              break
+
+            case 'complete':
+              resolved = true
+              onChunk({
+                type: 'complete',
+                response: data.response || fullContent,
+                provider: data.provider,
+                model: data.model,
+                chartHtml: chartHtml || data.chartHtml
+              })
+              // Cleanup and resolve
+              unsubscribe()
+              motiaStreamClient.disconnect(streamName, streamId)
+              resolve({
+                response: data.response || fullContent || immediateResponse.response,
+                provider: data.provider || immediateResponse.llmProvider,
+                model: data.model || immediateResponse.model,
+                chartHtml: chartHtml || immediateResponse.chartHtml,
+                traceId
+              })
+              break
+
+            case 'error':
+              onChunk({ type: 'error', error: data.error })
+              unsubscribe()
+              motiaStreamClient.disconnect(streamName, streamId)
+              reject(new Error(data.error || 'Stream error'))
+              break
+
+            case 'chart':
+              chartHtml = data.chartHtml
+              onChunk({ type: 'chart', chartHtml })
+              break
+          }
+        })
+
+        // Handle connection errors
+        motiaStreamClient.on(streamName, streamId, 'error', (error) => {
+          console.error('Stream connection error:', error)
+          unsubscribe()
+          reject(new Error('Stream connection failed'))
+        })
+
+        // Fallback to immediate response if no streaming after 2 seconds
+        setTimeout(() => {
+          if (!hasReceivedTokens && !resolved && immediateResponse.response) {
+            console.log('[StreamDebug] No tokens received, using immediate response')
+            resolved = true
+            unsubscribe()
+            motiaStreamClient.disconnect(streamName, streamId)
+
+            // Simulate streaming the immediate response
+            const text = immediateResponse.response
+            const words = text.split(' ')
+            let index = 0
+            const interval = setInterval(() => {
+              if (index < words.length) {
+                const chunk = words[index] + ' '
+                onChunk({ chunk, type: 'token' })
+                index++
+              } else {
+                clearInterval(interval)
+                onChunk({
+                  type: 'complete',
+                  response: text,
+                  provider: immediateResponse.llmProvider,
+                  model: immediateResponse.model,
+                  chartHtml: immediateResponse.chartHtml
+                })
+                resolve(immediateResponse)
+              }
+            }, 50) // Simulate streaming speed
+          }
+        }, 2000)
+
+        // Hard timeout after 60 seconds
+        setTimeout(() => {
+          if (!resolved) {
+            unsubscribe()
+            motiaStreamClient.disconnect(streamName, streamId)
+            reject(new Error('Stream timeout'))
+          }
+        }, 60000)
+      })
+    } catch (error) {
+      console.error('Stream Error:', error);
+      throw error;
+    }
+  }
+
+  async streamMessage(message, assistantType = 'general', history = [], onChunk, responseStyle = 'conversational') {
+    // Try Motia streaming first
+    try {
+      return await this.streamMessageMotia(message, assistantType, history, onChunk, responseStyle)
+    } catch (error) {
+      console.warn('Motia streaming failed, falling back to polling:', error)
+
+      // Fallback to simple JSON response with simulated streaming
+      const response = await this.sendMessage(message, assistantType, history)
+
+      // Simulate streaming by breaking the response into chunks
+      const text = response.response || response.message || response.content || ''
+      const words = text.split(' ')
+
+      for (let i = 0; i < words.length; i++) {
+        onChunk({ chunk: words[i] + ' ', type: 'token' })
+        await new Promise(resolve => setTimeout(resolve, 30))
+      }
+
+      onChunk({ type: 'complete', response: text })
+      return response
+    }
   }
 }
 
-export const apiService = {
-  async sendMessage(message, assistantType, options = {}) {
-    const body = buildRequestBody(message, assistantType, { ...options, stream: false })
+export default new ApiService();
+```
 
-    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
+#### Motia Stream Client (src/services/motia-stream-client.js)
 
-    if (!response.ok) throw new Error('API request failed')
-    return response.json()
-  },
+This client handles WebSocket connections to Motia's streaming endpoints:
 
-  async streamMessage(message, assistantType, options = {}, onChunk) {
-    const body = buildRequestBody(message, assistantType, { ...options, stream: true })
+```javascript
+class MotiaStreamClient {
+  constructor() {
+    this.connections = new Map()
+    this.listeners = new Map()
+    this.baseUrl = `ws://${window.location.hostname}:3000/streams`
+  }
 
-    const response = await fetch(`${API_BASE_URL}/chat/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
+  connect(streamName, streamId, options = {}) {
+    const key = `${streamName}:${streamId}`
 
-    if (!response.ok) throw new Error('Stream request failed')
+    if (this.connections.has(key)) {
+      console.log(`[MotiaStream] Already connected to ${key}`)
+      return this.connections.get(key)
+    }
 
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-    let buffer = ''
+    const url = `${this.baseUrl}/${streamName}/${streamId}`
+    console.log(`[MotiaStream] Connecting to ${url}`)
 
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
+    const ws = new WebSocket(url)
 
-      buffer += decoder.decode(value, { stream: true })
-      const lines = buffer.split('\n')
-      buffer = lines.pop() || ''
+    ws.onopen = () => {
+      console.log(`[MotiaStream] Connected to ${key}`)
+      this.emit(streamName, streamId, 'open')
+    }
 
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') return
-          try {
-            const parsed = JSON.parse(data)
-            onChunk(parsed)
-          } catch (e) {
-            console.error('Failed to parse SSE data:', e)
-          }
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        console.log(`[MotiaStream] Message on ${key}:`, data)
+        this.emit(streamName, streamId, 'message', data)
+      } catch (error) {
+        console.error(`[MotiaStream] Failed to parse message on ${key}:`, error)
+        this.emit(streamName, streamId, 'error', error)
+      }
+    }
+
+    ws.onerror = (error) => {
+      console.error(`[MotiaStream] Error on ${key}:`, error)
+      this.emit(streamName, streamId, 'error', error)
+    }
+
+    ws.onclose = () => {
+      console.log(`[MotiaStream] Disconnected from ${key}`)
+      this.connections.delete(key)
+      this.emit(streamName, streamId, 'close')
+
+      // Auto-reconnect if option is enabled
+      if (options.autoReconnect && options.autoReconnect !== false) {
+        setTimeout(() => {
+          console.log(`[MotiaStream] Attempting to reconnect to ${key}`)
+          this.connect(streamName, streamId, options)
+        }, 1000)
+      }
+    }
+
+    this.connections.set(key, ws)
+    return ws
+  }
+
+  disconnect(streamName, streamId) {
+    const key = `${streamName}:${streamId}`
+    const ws = this.connections.get(key)
+
+    if (ws) {
+      console.log(`[MotiaStream] Disconnecting from ${key}`)
+      ws.close()
+      this.connections.delete(key)
+    }
+  }
+
+  on(streamName, streamId, event, callback) {
+    const key = `${streamName}:${streamId}:${event}`
+
+    if (!this.listeners.has(key)) {
+      this.listeners.set(key, new Set())
+    }
+
+    this.listeners.get(key).add(callback)
+
+    // Return unsubscribe function
+    return () => {
+      const callbacks = this.listeners.get(key)
+      if (callbacks) {
+        callbacks.delete(callback)
+        if (callbacks.size === 0) {
+          this.listeners.delete(key)
         }
       }
     }
   }
+
+  emit(streamName, streamId, event, data) {
+    const key = `${streamName}:${streamId}:${event}`
+    const callbacks = this.listeners.get(key)
+
+    if (callbacks) {
+      callbacks.forEach(callback => {
+        try {
+          callback(data)
+        } catch (error) {
+          console.error(`[MotiaStream] Error in callback for ${key}:`, error)
+        }
+      })
+    }
+  }
+
+  disconnectAll() {
+    this.connections.forEach((ws, key) => {
+      console.log(`[MotiaStream] Disconnecting from ${key}`)
+      ws.close()
+    })
+    this.connections.clear()
+  }
 }
+
+export const motiaStreamClient = new MotiaStreamClient()
 ```
 
 ### 2. Chart Renderer Component (src/components/ChartRenderer.jsx)
@@ -1034,6 +1351,133 @@ npm run preview
 2. Ensure all fields are properly typed in the request body
 3. Verify optional fields are marked as optional in backend schema
 4. Include proper TypeScript types for history array elements
+
+## 🔍 CRITICAL VERIFICATION CHECKLIST
+
+### Environment Configuration Verification
+
+#### Backend Environment
+```bash
+# 1. Check if .env file exists
+ls -la apps/backend/.env
+
+# 2. Verify API keys are configured (should show true for at least one)
+cd apps/backend
+node -e "require('dotenv').config(); console.log({
+  hasGroq: !!process.env.GROQ_API_KEY,
+  hasAzure: !!process.env.AZURE_OPENAI_API_KEY,
+  hasAzureEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT
+})"
+
+# 3. Start backend and check logs
+npm run dev
+# Look for: "[LLMService] ✓ READY: Configured providers: ..."
+```
+
+#### Frontend Environment Check
+```bash
+# 1. Verify proxy configuration in vite.config.js or next.config.js
+grep -A 5 "proxy" vite.config.js
+
+# 2. Check API service uses correct endpoints
+grep "/api/chat/stream" src/services/api.service.js
+
+# 3. Verify Motia WebSocket client setup
+ls src/services/motia-stream-client.js
+```
+
+### Streaming Method Verification
+
+#### Test WebSocket Connection
+```javascript
+// Browser Console Test
+const ws = new WebSocket('ws://localhost:3000/streams/chat-messages/user:test')
+ws.onopen = () => console.log('✅ WebSocket connected')
+ws.onerror = (e) => console.log('❌ WebSocket error:', e)
+ws.onmessage = (e) => console.log('📨 Message:', e.data)
+```
+
+#### Test API Endpoint Directly
+```bash
+# Direct backend test (should return JSON with traceId)
+curl -X POST http://localhost:3000/api/chat/stream \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "test",
+    "assistantType": "general",
+    "userId": "test-user",
+    "stream": true
+  }'
+```
+
+### Common Configuration Issues Checklist
+
+| Issue | Check | Solution |
+|-------|-------|----------|
+| **No LLM response** | Backend logs show "No LLM providers configured" | Add API keys to `/apps/backend/.env` |
+| **Slow responses** | Web app using multi-agent workflow unintentionally | Pass `responseStyle: 'conversational'` |
+| **401 Errors** | Invalid API keys in logs | Update API keys in `.env` |
+| **WebSocket fails** | Connection refused on port 3000 | Ensure Motia backend is running |
+| **Streaming not working** | No tokens received in console | Check Motia stream configuration |
+| **Different behavior between apps** | Request payloads differ | Standardize using blueprint API service |
+
+### Performance Optimization Checklist
+
+- [ ] **Environment Variables**
+  - `.env` file exists in `/apps/backend/`
+  - At least one LLM provider configured (Groq or Azure)
+  - No `.env.local` files being used
+
+- [ ] **Streaming Setup**
+  - Motia WebSocket client implemented
+  - Fallback to polling configured
+  - Timeout handling in place (2s for fallback, 60s max)
+
+- [ ] **Request Optimization**
+  - Using `responseStyle: 'conversational'` for chat
+  - Avoiding workflow triggers unless needed
+  - History limited to last 10 exchanges
+
+- [ ] **Error Handling**
+  - Graceful fallback when streaming fails
+  - User-friendly error messages
+  - Retry logic for transient failures
+
+### Debugging Steps
+
+1. **Check Backend Health**:
+   ```bash
+   # View backend logs for LLM configuration
+   cd apps/backend && npm run dev
+   # Should see: "[LLMService] ✓ READY: Configured providers: Groq, Azure OpenAI"
+   ```
+
+2. **Verify Request/Response**:
+   - Open browser DevTools → Network tab
+   - Send a chat message
+   - Check request payload matches blueprint format
+   - Verify response contains `traceId`
+
+3. **Monitor WebSocket Traffic**:
+   - DevTools → Network → WS tab
+   - Look for connection to `/streams/chat-messages/user:*`
+   - Verify messages flow with type: 'token', 'complete'
+
+4. **Test Fallback Behavior**:
+   - Temporarily block WebSocket port
+   - Verify app falls back to polling
+   - Check simulated streaming works
+
+### Final Deployment Checklist
+
+- [ ] Production `.env` configured with real API keys
+- [ ] WebSocket URLs updated for production domain
+- [ ] CSP headers include production domains
+- [ ] Error tracking configured
+- [ ] Rate limiting implemented
+- [ ] API key rotation scheduled
+- [ ] Monitoring dashboards set up
+- [ ] Load testing completed
 
 ## Additional Resources
 

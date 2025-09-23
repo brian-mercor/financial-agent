@@ -1,7 +1,7 @@
 const { Configuration, PlaidApi, PlaidEnvironments, CountryCode, Products } = require('plaid');
 
 // Load environment variables
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config({ path: '.env' });
 
 console.log('Testing Plaid credentials...');
 console.log('Environment:', process.env.PLAID_ENV);
