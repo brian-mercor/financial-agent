@@ -3,7 +3,7 @@ import { azureOpenAI, AzureOpenAIService } from './azure-openai.service';
 import { config as dotenvConfig } from 'dotenv';
 
 // Load environment variables
-dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 
 export type LLMProvider = 'groq' | 'azure-openai' | 'openai' | 'auto';
 export type ModelType = 'gpt-5' | 'gpt-4-turbo' | 'gpt-4' | 'llama-3.3-70b' | 'llama-3.1-8b' | 'auto';

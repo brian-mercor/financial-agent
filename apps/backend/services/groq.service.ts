@@ -2,7 +2,7 @@ import Groq from 'groq-sdk';
 import { config as dotenvConfig } from 'dotenv';
 
 // Load environment variables
-dotenvConfig({ path: '.env.local' });
+dotenvConfig({ path: '.env' });
 
 /**
  * Groq Service Wrapper for ultra-fast Llama inference
@@ -41,7 +41,7 @@ export class GroqService {
     stream?: boolean;
   }) {
     if (!this.isConfigured()) {
-      throw new Error('Groq is not configured. Please add GROQ_API_KEY to your .env.local file');
+      throw new Error('Groq is not configured. Please add GROQ_API_KEY to your .env file');
     }
     
     try {

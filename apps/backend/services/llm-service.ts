@@ -1,5 +1,5 @@
 import { Groq } from 'groq-sdk';
-import OpenAI from 'openai';
+import OpenAI from 'openai'; // Used for Azure client
 import * as dotenv from 'dotenv';
 
 // Load environment variables
@@ -19,7 +19,6 @@ interface LLMResponse {
 
 export class LLMService {
   private groqClient?: Groq;
-  private openaiClient?: OpenAI;
   private azureClient?: OpenAI;
   private config: LLMServiceConfig;
 
@@ -38,7 +37,6 @@ export class LLMService {
     console.log('[LLMService] .env file exists:', envFileExists ? 'YES ✓' : 'NO ✗ (create from .env.example)');
     console.log('[LLMService] Checking API providers:', {
       hasGroqKey: !!process.env.GROQ_API_KEY,
-      hasOpenAIKey: !!process.env.OPENAI_API_KEY,
       hasAzureKey: !!process.env.AZURE_OPENAI_API_KEY,
       hasAzureEndpoint: !!process.env.AZURE_OPENAI_ENDPOINT,
       azureDeployment: process.env.AZURE_OPENAI_DEPLOYMENT_NAME || process.env.AZURE_OPENAI_DEPLOYMENT
@@ -62,20 +60,7 @@ export class LLMService {
       console.log('[LLMService] ✗ Groq: No API key found (set GROQ_API_KEY in .env)');
     }
 
-    // Initialize OpenAI client
-    if (process.env.OPENAI_API_KEY) {
-      try {
-        this.openaiClient = new OpenAI({
-          apiKey: process.env.OPENAI_API_KEY,
-        });
-        console.log('[LLMService] ✓ OpenAI client initialized successfully');
-        configuredProviders.push('OpenAI');
-      } catch (error) {
-        console.error('[LLMService] ✗ Failed to initialize OpenAI client:', error);
-      }
-    } else {
-      console.log('[LLMService] ✗ OpenAI: No API key found (set OPENAI_API_KEY in .env)');
-    }
+    // OpenAI client removed - using Azure or Groq only
 
     // Initialize Azure OpenAI client
     if (process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_ENDPOINT) {
@@ -126,7 +111,7 @@ export class LLMService {
       console.log('[LLMService] ⚠️  Chat will NOT work without at least one provider.');
       console.log('[LLMService] ⚠️  ACTION REQUIRED:');
       console.log('[LLMService] ⚠️  1. Copy .env.example to .env');
-      console.log('[LLMService] ⚠️  2. Add at least one API key (Groq recommended for free tier)');
+      console.log('[LLMService] ⚠️  2. Add GROQ_API_KEY or AZURE_OPENAI_API_KEY to .env');
       console.log('[LLMService] ⚠️  3. Restart the backend');
     }
     console.log('[LLMService] ===========================================');
@@ -207,32 +192,9 @@ export class LLMService {
       }
     }
 
-    // Fallback to OpenAI
-    if (this.openaiClient) {
-      try {
-        const completion = await this.openaiClient.chat.completions.create({
-          messages,
-          model: 'gpt-4-turbo-preview',
-          temperature: 0.7,
-          max_tokens: 2048,
-          stream: false,
-        });
-
-        return {
-          content: completion.choices[0]?.message?.content || '',
-          provider: 'openai',
-          model: 'gpt-4-turbo-preview',
-          tokensUsed: completion.usage?.total_tokens,
-        };
-      } catch (error) {
-        console.error('OpenAI API failed:', error);
-        throw new Error('All LLM providers failed');
-      }
-    }
-
     // No providers configured - throw error
     console.error('[LLMService] CRITICAL: No LLM providers configured!');
-    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY or AZURE_OPENAI_API_KEY to /apps/backend/.env');
   }
 
   async processWithStreaming(
@@ -269,7 +231,6 @@ export class LLMService {
     console.log('[LLMService] Selecting provider for streaming', {
       hasAzureClient: !!this.azureClient,
       hasGroqClient: !!this.groqClient,
-      hasOpenAIClient: !!this.openaiClient,
       azureDeployment,
       isModelRouter: azureDeployment.includes('model-router')
     });
@@ -389,47 +350,14 @@ export class LLMService {
       } catch (error) {
         console.error('Azure OpenAI streaming failed:', error);
         if (this.config.providerSwitchCallback) {
-          await this.config.providerSwitchCallback('azure', 'openai', 'Azure API error');
+          await this.config.providerSwitchCallback('azure', 'error', 'Azure API error');
         }
-      }
-    }
-
-    // Fallback to OpenAI
-    if (this.openaiClient) {
-      try {
-        provider = 'openai';
-        model = 'gpt-4-turbo-preview';
-        
-        const stream = await this.openaiClient.chat.completions.create({
-          messages,
-          model: 'gpt-4-turbo-preview',
-          temperature: 0.7,
-          max_tokens: 2048,
-          stream: true,
-        });
-
-        accumulatedContent = '';
-        for await (const chunk of stream) {
-          const token = chunk.choices[0]?.delta?.content || '';
-          if (token) {
-            accumulatedContent += token;
-            if (this.config.streamCallback) {
-              await this.config.streamCallback(token, { provider, model });
-            }
-          }
-          // Usage is not available in streaming chunks for Groq
-        }
-
-        return { content: accumulatedContent, provider, model, tokensUsed };
-      } catch (error) {
-        console.error('OpenAI streaming failed:', error);
-        throw new Error('All LLM providers failed');
       }
     }
 
     // No providers configured - throw error
     console.error('[LLMService] CRITICAL: No LLM providers configured for streaming!');
-    throw new Error('No LLM providers configured. Please add GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY to /apps/backend/.env');
+    throw new Error('No LLM providers configured. Please add GROQ_API_KEY or AZURE_OPENAI_API_KEY to /apps/backend/.env');
   }
 
   private getMockResponse(message: string, assistantType: string): LLMResponse {
@@ -441,7 +369,7 @@ As a MOCK assistant (no LLM API configured), I can provide this test response to
 
 To enable real AI responses:
 1. Add your API key to /apps/backend/.env
-2. Choose from: GROQ_API_KEY, OPENAI_API_KEY, or AZURE_OPENAI_API_KEY
+2. Choose from: GROQ_API_KEY or AZURE_OPENAI_API_KEY
 3. Restart the backend server
 
 The system is functioning properly - this mock response confirms the chat pipeline is operational.`,
