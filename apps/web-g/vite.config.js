@@ -18,8 +18,9 @@ export default defineConfig(({ mode }) => {
         'Content-Security-Policy': [
           "default-src 'self'",
           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://s3.tradingview.com https://*.tradingview.com",
-          "style-src 'self' 'unsafe-inline' https://s3.tradingview.com",
+          "style-src 'self' 'unsafe-inline' https://s3.tradingview.com https://fonts.googleapis.com https://fonts.gstatic.com",
           "img-src 'self' data: blob: https://*.tradingview.com https://s3.tradingview.com",
+          "font-src 'self' https://fonts.gstatic.com",
           "connect-src 'self' wss://*.tradingview.com https://*.tradingview.com https://api.openai.com https://*.supabase.co wss://*.supabase.co http://localhost:3000",
           "frame-src 'self' https://*.tradingview.com",
           "worker-src 'self' blob:",
