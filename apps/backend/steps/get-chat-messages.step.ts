@@ -40,8 +40,8 @@ export const config: ApiRouteConfig = {
 
 export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
   try {
-    // Manually parse and validate query parameters
-    const query = req.query || {};
+    // Parse query parameters from Motia's request wrapper
+    const query = req.queryParams || {};
     const sessionId = query.sessionId as string;
     const threadId = query.threadId as string | undefined;
     const limit = query.limit ? parseInt(query.limit as string) : 50;

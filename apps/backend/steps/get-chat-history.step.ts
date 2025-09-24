@@ -40,8 +40,8 @@ export const config: ApiRouteConfig = {
 
 export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
   try {
-    // Manually parse and validate query parameters
-    const query = req.query || {};
+    // Parse query parameters from Motia's request wrapper
+    const query = req.queryParams || {};
     const userId = query.userId as string;
     const limit = query.limit ? parseInt(query.limit as string) : 20;
     const offset = query.offset ? parseInt(query.offset as string) : 0;

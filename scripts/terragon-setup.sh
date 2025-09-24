@@ -100,6 +100,10 @@ for appdir in "${REPO_ROOT}"/apps/web-*; do
   augment_frontend_env
   write_env_file "${appdir}/.env" "${FRONTEND_PATTERNS[@]}"
   echo "  - wrote ${appdir}/.env"
+  # Also ensure .env.local is written to override any stale local settings
+  augment_frontend_env
+  write_env_file "${appdir}/.env.local" "${FRONTEND_PATTERNS[@]}"
+  echo "  - wrote ${appdir}/.env.local"
 done
 
 # Optional landing pages (Astro/Next): include NEXT_PUBLIC_* if present
