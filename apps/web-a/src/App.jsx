@@ -2,6 +2,7 @@ import React from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { SettingsProvider } from './contexts/SettingsContext'
+import { ConversationProvider } from './contexts/ConversationContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
@@ -13,11 +14,20 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <SettingsProvider>
-          <Routes>
+          <ConversationProvider>
+            <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route
               path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/:conversationId"
               element={
                 <ProtectedRoute>
                   <DashboardPage />
@@ -32,7 +42,8 @@ function App() {
                 </ProtectedRoute>
               }
             />
-          </Routes>
+            </Routes>
+          </ConversationProvider>
         </SettingsProvider>
       </AuthProvider>
     </BrowserRouter>

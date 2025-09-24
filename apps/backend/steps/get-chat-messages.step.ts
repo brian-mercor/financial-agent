@@ -6,11 +6,26 @@ import { createClient } from '@supabase/supabase-js';
 let supabase: any = null;
 
 const getSupabase = () => {
-  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
+  if (!supabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!url || !key) {
+      console.error('Supabase credentials missing in get-chat-messages');
+      return null;
+    }
+
+    try {
+      supabase = createClient(url, key, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    } catch (error) {
+      console.error('Failed to create Supabase client:', error);
+      return null;
+    }
   }
   return supabase;
 };
@@ -19,17 +34,18 @@ export const config: ApiRouteConfig = {
   type: 'api',
   name: 'GetChatMessages',
   method: 'GET',
-  path: '/api/chat/sessions/messages',
+  path: '/api/chat/messages',
   emits: [],
 };
 
 export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
   try {
-    // Manually parse and validate query parameters
-    const sessionId = req.query.sessionId as string;
-    const threadId = req.query.threadId as string | undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    // Parse query parameters from Motia's request wrapper
+    const query = req.queryParams || {};
+    const sessionId = query.sessionId as string;
+    const threadId = query.threadId as string | undefined;
+    const limit = query.limit ? parseInt(query.limit as string) : 50;
+    const offset = query.offset ? parseInt(query.offset as string) : 0;
 
     if (!sessionId) {
       return {
@@ -65,7 +81,7 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
     }
 
     // Build messages query
-    let query = db
+    let dbQuery = db
       .from('chat_messages')
       .select('*')
       .eq('chat_session_id', sessionId)
@@ -74,10 +90,10 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
 
     // Filter by thread if specified
     if (threadId) {
-      query = query.eq('thread_id', threadId);
+      dbQuery = dbQuery.eq('thread_id', threadId);
     }
 
-    const { data: messages, error: messagesError, count } = await query;
+    const { data: messages, error: messagesError, count } = await dbQuery;
 
     if (messagesError) {
       logger.error('Failed to fetch messages', { error: messagesError });

@@ -4,15 +4,22 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import apiService from '../services/api.service'
 import { useSettings } from '../contexts/SettingsContext'
+import { useConversation } from '../contexts/ConversationContext'
 
 export function SmartChatInterface({ assistant }) {
-  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [selectedReport, setSelectedReport] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const { settings } = useSettings()
+  const {
+    messages,
+    setMessages,
+    currentConversation,
+    createConversation,
+    saveMessage
+  } = useConversation()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -43,6 +50,19 @@ export function SmartChatInterface({ assistant }) {
       timestamp: new Date(),
       assistantType: assistant.id,
     }
+
+    // Create conversation if this is the first message
+    let conversation = currentConversation
+    if (!conversation) {
+      conversation = await createConversation(input, assistant.id)
+      if (!conversation) {
+        console.error('Failed to create conversation')
+        return
+      }
+    }
+
+    // Save the user message to the database
+    await saveMessage('user', input, { assistantType: assistant.id })
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -106,10 +126,11 @@ export function SmartChatInterface({ assistant }) {
       )
 
       // Final update with complete response
+      const finalContent = fullContent || response?.response || response?.message || response?.content || 'No response received'
       const finalMessage = {
         id: assistantMessageId,
         role: 'assistant',
-        content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+        content: finalContent,
         chartHtml: chartHtml || response?.chartHtml,
         hasChart: hasChart || response?.hasChart,
         isStreaming: false,
@@ -119,6 +140,12 @@ export function SmartChatInterface({ assistant }) {
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMessageId ? finalMessage : msg
       ))
+
+      // Save assistant response to conversation
+      await saveMessage('assistant', finalContent, {
+        assistantType: assistant.id,
+        workflowId: response?.workflowId
+      })
 
       // Auto-select this report on desktop
       if (window.innerWidth >= 1024) {
@@ -139,7 +166,7 @@ export function SmartChatInterface({ assistant }) {
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, assistant.id, messages])
+  }, [input, isLoading, assistant.id, messages, currentConversation, createConversation, saveMessage])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
