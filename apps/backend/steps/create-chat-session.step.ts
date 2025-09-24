@@ -6,11 +6,30 @@ import { createClient } from '@supabase/supabase-js';
 let supabase: any = null;
 
 const getSupabase = () => {
-  if (!supabase && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_KEY) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_SERVICE_KEY
-    );
+  if (!supabase) {
+    const url = process.env.SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_KEY;
+
+    if (!url || !key) {
+      console.error('Supabase credentials missing:', {
+        hasUrl: !!url,
+        hasKey: !!key,
+        url: url?.substring(0, 30) + '...'
+      });
+      return null;
+    }
+
+    try {
+      supabase = createClient(url, key, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+    } catch (error) {
+      console.error('Failed to create Supabase client:', error);
+      return null;
+    }
   }
   return supabase;
 };
