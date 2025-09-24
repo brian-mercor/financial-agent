@@ -26,10 +26,11 @@ export const config: ApiRouteConfig = {
 export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
   try {
     // Manually parse and validate query parameters
-    const sessionId = req.query.sessionId as string;
-    const threadId = req.query.threadId as string | undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+    const query = req.query || {};
+    const sessionId = query.sessionId as string;
+    const threadId = query.threadId as string | undefined;
+    const limit = query.limit ? parseInt(query.limit as string) : 50;
+    const offset = query.offset ? parseInt(query.offset as string) : 0;
 
     if (!sessionId) {
       return {

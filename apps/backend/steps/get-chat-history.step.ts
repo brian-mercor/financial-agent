@@ -26,10 +26,11 @@ export const config: ApiRouteConfig = {
 export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
   try {
     // Manually parse and validate query parameters
-    const userId = req.query.userId as string;
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-    const archived = req.query.archived === 'true';
+    const query = req.query || {};
+    const userId = query.userId as string;
+    const limit = query.limit ? parseInt(query.limit as string) : 20;
+    const offset = query.offset ? parseInt(query.offset as string) : 0;
+    const archived = query.archived === 'true';
 
     if (!userId) {
       return {
@@ -50,7 +51,7 @@ export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
     }
 
     // Build query
-    let query = db
+    let dbQuery = db
       .from('chat_sessions')
       .select(`
         *,
@@ -68,10 +69,10 @@ export const handler: Handlers['GetChatHistory'] = async (req, { logger }) => {
 
     // Filter by archived status if specified
     if (archived !== undefined) {
-      query = query.eq('is_archived', archived);
+      dbQuery = dbQuery.eq('is_archived', archived);
     }
 
-    const { data: sessions, error, count } = await query;
+    const { data: sessions, error, count } = await dbQuery;
 
     if (error) {
       logger.error('Failed to fetch chat history', { error });
