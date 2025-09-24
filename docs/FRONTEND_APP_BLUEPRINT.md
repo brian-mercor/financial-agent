@@ -8,6 +8,10 @@
 4. [Essential Dependencies](#essential-dependencies)
 5. [Configuration Files](#configuration-files)
 6. [Component Architecture](#component-architecture)
+   - 6.1. [Chat History & Conversation Management](#1-chat-history--conversation-management)
+   - 6.2. [API Service](#2-api-service---standardized-implementation)
+   - 6.3. [Chart Renderer Component](#2-chart-renderer-component)
+   - 6.4. [Smart Chat Interface](#3-smart-chat-interface)
 7. [API Integration](#api-integration)
 8. [Chart Implementation](#chart-implementation)
 9. [Routing Structure](#routing-structure)
@@ -319,7 +323,474 @@ export default {
 
 ## Component Architecture
 
-### 1. API Service - STANDARDIZED IMPLEMENTATION
+### 1. Chat History & Conversation Management
+
+**IMPORTANT**: This section documents the complete chat history implementation patterns from the `web-a` reference application, including persistent storage with Supabase, conversation contexts, and UI components.
+
+#### Chat History Database Schema
+
+The chat history system uses Supabase with the following table structure:
+
+```sql
+-- Chat Sessions (main chat containers)
+CREATE TABLE chat_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  title TEXT,
+  assistant_type TEXT DEFAULT 'general',
+  is_archived BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  last_message_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Chat Messages (individual messages within chats)
+CREATE TABLE chat_messages (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  chat_session_id UUID REFERENCES chat_sessions(id) ON DELETE CASCADE,
+  role TEXT NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+  content TEXT NOT NULL,
+  thread_id UUID,
+  parent_message_id UUID REFERENCES chat_messages(id),
+  metadata JSONB DEFAULT '{}',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Chat Metadata (aggregated stats and tags)
+CREATE TABLE chat_metadata (
+  chat_session_id UUID PRIMARY KEY REFERENCES chat_sessions(id),
+  total_messages INTEGER DEFAULT 0,
+  total_tokens INTEGER DEFAULT 0,
+  providers_used JSONB DEFAULT '[]',
+  tags TEXT[] DEFAULT '{}',
+  last_activity TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+#### Backend API Endpoints
+
+The chat history system requires these backend API endpoints:
+
+1. **Create Chat Session**: `POST /api/chat/sessions`
+   ```typescript
+   // Request body
+   {
+     "userId": "user-id",
+     "assistantType": "general",
+     "initialMessage": "Hello world"
+   }
+
+   // Response
+   {
+     "sessionId": "uuid",
+     "url": "/chat/uuid",
+     "chatSession": { /* session data */ }
+   }
+   ```
+
+2. **Get Chat History**: `GET /api/chat/sessions?userId=user-id&limit=20&offset=0`
+   ```typescript
+   // Response
+   {
+     "sessions": [
+       {
+         "id": "uuid",
+         "title": "Chat title",
+         "assistant_type": "general",
+         "last_message_at": "2025-01-16T12:00:00Z",
+         "lastMessage": {
+           "content": "Last message preview",
+           "role": "user"
+         }
+       }
+     ],
+     "total": 50,
+     "limit": 20,
+     "offset": 0
+   }
+   ```
+
+3. **Get Chat Messages**: `GET /api/chat/messages?sessionId=session-id`
+   ```typescript
+   // Response
+   {
+     "session": { /* session details */ },
+     "messages": [
+       {
+         "id": "uuid",
+         "role": "user",
+         "content": "Message content",
+         "created_at": "2025-01-16T12:00:00Z",
+         "metadata": {}
+       }
+     ],
+     "total": 25
+   }
+   ```
+
+4. **Save Chat Message**: `POST /api/chat/messages`
+   ```typescript
+   // Request body
+   {
+     "sessionId": "session-id",
+     "role": "user",
+     "content": "Message content",
+     "metadata": {
+       "provider": "groq",
+       "model": "llama-3.3-70b",
+       "tokens": 150
+     }
+   }
+   ```
+
+#### Conversation Context Implementation
+
+```javascript
+// src/contexts/ConversationContext.jsx
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from './AuthContext'
+
+const ConversationContext = createContext({})
+
+export const useConversation = () => {
+  const context = useContext(ConversationContext)
+  if (!context) {
+    throw new Error('useConversation must be used within ConversationProvider')
+  }
+  return context
+}
+
+export function ConversationProvider({ children }) {
+  const navigate = useNavigate()
+  const { conversationId } = useParams()
+  const { user } = useAuth()
+  const [conversations, setConversations] = useState([])
+  const [currentConversation, setCurrentConversation] = useState(null)
+  const [messages, setMessages] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Fetch all conversations for the user
+  const fetchConversations = async () => {
+    if (!user?.id) return
+    try {
+      const response = await fetch(`/api/chat/sessions?userId=${user.id}`)
+      if (response.ok) {
+        const data = await response.json()
+        setConversations(data.sessions || [])
+      }
+    } catch (error) {
+      console.error('Failed to fetch conversations:', error)
+    }
+  }
+
+  // Create a new conversation
+  const createConversation = async (initialMessage, assistantType = 'general') => {
+    if (!user?.id) return null
+    try {
+      const response = await fetch(`/api/chat/sessions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          assistantType,
+          initialMessage: initialMessage?.substring(0, 100),
+        })
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const newConversation = data.chatSession
+        setConversations(prev => [newConversation, ...prev])
+        setCurrentConversation(newConversation)
+        navigate(`/dashboard/${newConversation.id}`)
+        return newConversation
+      }
+    } catch (error) {
+      console.error('Failed to create conversation:', error)
+    }
+    return null
+  }
+
+  // Save a message to the current conversation
+  const saveMessage = async (role, content, metadata = {}) => {
+    if (!currentConversation?.id) return null
+    try {
+      const response = await fetch(`/api/chat/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: currentConversation.id,
+          role,
+          content,
+          metadata,
+        })
+      })
+      if (response.ok) {
+        const data = await response.json()
+        const newMessage = data.message
+        setMessages(prev => [...prev, newMessage])
+        return newMessage
+      }
+    } catch (error) {
+      console.error('Failed to save message:', error)
+    }
+    return null
+  }
+
+  const value = {
+    conversations,
+    currentConversation,
+    messages,
+    loading,
+    error,
+    createConversation,
+    saveMessage,
+    startNewConversation: () => {
+      setCurrentConversation(null)
+      setMessages([])
+      navigate('/dashboard')
+    },
+    fetchConversations,
+    setMessages,
+  }
+
+  return (
+    <ConversationContext.Provider value={value}>
+      {children}
+    </ConversationContext.Provider>
+  )
+}
+```
+
+#### Conversation History UI Component
+
+```javascript
+// src/components/ConversationHistory.jsx
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useConversation } from '../contexts/ConversationContext'
+import { MessageSquare, Plus, Clock } from 'lucide-react'
+
+export function ConversationHistory() {
+  const navigate = useNavigate()
+  const { conversations, currentConversation, startNewConversation } = useConversation()
+
+  // Group conversations by date
+  const groupedConversations = React.useMemo(() => {
+    const groups = { today: [], yesterday: [], thisWeek: [], older: [] }
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const weekAgo = new Date(today)
+    weekAgo.setDate(weekAgo.getDate() - 7)
+
+    conversations.forEach(conv => {
+      const convDate = new Date(conv.created_at || conv.last_message_at)
+      if (convDate >= today) groups.today.push(conv)
+      else if (convDate >= yesterday) groups.yesterday.push(conv)
+      else if (convDate >= weekAgo) groups.thisWeek.push(conv)
+      else groups.older.push(conv)
+    })
+    return groups
+  }, [conversations])
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <label className="text-sm font-semibold text-gray-700">
+          Conversation History
+        </label>
+        {currentConversation && (
+          <button
+            onClick={startNewConversation}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            <Plus className="h-4 w-4" />
+            New Chat
+          </button>
+        )}
+      </div>
+
+      <div className="space-y-4 max-h-96 overflow-y-auto">
+        {conversations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm">No conversations yet</p>
+          </div>
+        ) : (
+          <>
+            {Object.entries(groupedConversations).map(([period, convs]) =>
+              convs.length > 0 && (
+                <ConversationGroup
+                  key={period}
+                  title={period.charAt(0).toUpperCase() + period.slice(1)}
+                  conversations={convs}
+                  currentId={currentConversation?.id}
+                  onSelect={(id) => navigate(`/dashboard/${id}`)}
+                />
+              )
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ConversationGroup({ title, conversations, currentId, onSelect }) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">{title}</h3>
+      <div className="space-y-1">
+        {conversations.map(conv => (
+          <button
+            key={conv.id}
+            onClick={() => onSelect(conv.id)}
+            className={`w-full text-left px-3 py-2 rounded-lg transition ${
+              conv.id === currentId
+                ? 'bg-blue-100 border border-blue-300'
+                : 'hover:bg-gray-50 border border-transparent'
+            }`}
+          >
+            <div className="flex items-start justify-between">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {conv.title || 'New conversation'}
+                </p>
+                {conv.lastMessage && (
+                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                    {conv.lastMessage.content}
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-1 ml-2 text-xs text-gray-400">
+                <Clock className="h-3 w-3" />
+                <span>{new Date(conv.last_message_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+```
+
+#### Updated Routing Structure
+
+```javascript
+// src/App.jsx - Updated routing for chat history
+import { ConversationProvider } from './contexts/ConversationContext'
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ConversationProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignUpPage />} />
+            <Route path="/dashboard" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+            <Route path="/dashboard/:conversationId" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          </Routes>
+        </ConversationProvider>
+      </AuthProvider>
+    </BrowserRouter>
+  )
+}
+```
+
+#### Integration with Chat Interface
+
+Update SmartChatInterface to work with conversation context:
+
+```javascript
+// In SmartChatInterface component
+import { useConversation } from '../contexts/ConversationContext'
+
+export function SmartChatInterface({ assistant }) {
+  const {
+    messages,
+    currentConversation,
+    createConversation,
+    saveMessage,
+    setMessages
+  } = useConversation()
+
+  const handleSubmit = useCallback(async (e) => {
+    e?.preventDefault()
+    if (!input.trim() || isLoading) return
+
+    // Create conversation if none exists
+    let conversation = currentConversation
+    if (!conversation) {
+      conversation = await createConversation(input, assistant.id)
+      if (!conversation) return
+    }
+
+    // Add user message immediately for responsiveness
+    const userMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    }
+    setMessages(prev => [...prev, userMessage])
+
+    // Save to database
+    await saveMessage('user', input)
+
+    // Continue with streaming response...
+  }, [input, isLoading, assistant.id, currentConversation, createConversation, saveMessage, setMessages])
+}
+```
+
+#### Environment Variables for Chat History
+
+Add these environment variables for Supabase integration:
+
+```bash
+# Supabase Configuration (Frontend)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+
+# Supabase Configuration (Backend)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_KEY=your-service-key
+```
+
+#### Chat History Best Practices
+
+1. **Database Performance**:
+   - Use proper indexes on `user_id`, `chat_session_id`, and `created_at`
+   - Implement pagination for large conversation lists
+   - Consider archiving old conversations
+
+2. **UI/UX Patterns**:
+   - Group conversations by time periods (Today, Yesterday, This Week, Older)
+   - Show preview of last message in conversation list
+   - Display conversation titles based on first user message
+   - Provide "New Chat" button when in an existing conversation
+
+3. **State Management**:
+   - Use React Context for conversation state
+   - Implement optimistic updates for better UX
+   - Cache conversation list and update incrementally
+
+4. **Error Handling**:
+   - Graceful fallbacks when database is unavailable
+   - Retry mechanisms for failed API calls
+   - User-friendly error messages
+
+5. **Security**:
+   - Implement Row Level Security (RLS) in Supabase
+   - Validate user ownership of conversations
+   - Use service keys on backend, anon keys on frontend
+
+### 2. API Service - STANDARDIZED IMPLEMENTATION
 
 **IMPORTANT**: This is the reference implementation from `web-a`. All frontend apps should follow this pattern for consistent behavior.
 
