@@ -11,7 +11,8 @@ export default defineConfig(({ mode }) => {
       port: 5174,
       proxy: {
         '/api': {
-          target: 'http://localhost:3000',
+          // Prefer configured API URL; fallback to localhost:3000
+          target: env.VITE_API_URL || 'http://localhost:3000',
           changeOrigin: true
         }
       },
