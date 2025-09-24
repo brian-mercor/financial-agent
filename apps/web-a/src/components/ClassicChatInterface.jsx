@@ -6,15 +6,22 @@ import { AgentStatusPanel } from './AgentStatusPanel'
 import { ChartRenderer } from './ChartRenderer'
 import apiService from '../services/api.service'
 import { useSettings } from '../contexts/SettingsContext'
+import { useConversation } from '../contexts/ConversationContext'
 
 export function ClassicChatInterface({ assistant }) {
-  const [messages, setMessages] = useState([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [activeWorkflow, setActiveWorkflow] = useState(null)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
   const { settings } = useSettings()
+  const {
+    messages,
+    setMessages,
+    currentConversation,
+    createConversation,
+    saveMessage
+  } = useConversation()
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -35,6 +42,19 @@ export function ClassicChatInterface({ assistant }) {
       timestamp: new Date(),
       assistantType: assistant.id,
     }
+
+    // Create conversation if this is the first message
+    let conversation = currentConversation
+    if (!conversation) {
+      conversation = await createConversation(input, assistant.id)
+      if (!conversation) {
+        console.error('Failed to create conversation')
+        return
+      }
+    }
+
+    // Save the user message to the database
+    await saveMessage('user', input, { assistantType: assistant.id })
 
     setMessages(prev => [...prev, userMessage])
     setInput('')
@@ -97,17 +117,25 @@ export function ClassicChatInterface({ assistant }) {
       )
 
       // Final update with complete response
+      const finalContent = fullContent || response?.response || response?.message || response?.content || 'No response received'
+
       setMessages(prev => prev.map(msg =>
         msg.id === assistantMessageId
           ? {
               ...msg,
-              content: fullContent || response?.response || response?.message || response?.content || 'No response received',
+              content: finalContent,
               chartHtml: settings.enableCharts ? (chartHtml || response?.chartHtml) : null,
               hasChart: settings.enableCharts ? (hasChart || response?.hasChart) : false,
               isStreaming: false
             }
           : msg
       ))
+
+      // Save assistant response to conversation
+      await saveMessage('assistant', finalContent, {
+        assistantType: assistant.id,
+        workflowId: response?.workflowId
+      })
 
       // Handle workflow if present
       if (response?.workflowId) {
@@ -132,7 +160,7 @@ export function ClassicChatInterface({ assistant }) {
     } finally {
       setIsLoading(false)
     }
-  }, [input, isLoading, assistant.id, messages, settings.responseStyle, settings.enableCharts])
+  }, [input, isLoading, assistant.id, messages, settings.responseStyle, settings.enableCharts, currentConversation, createConversation, saveMessage])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {

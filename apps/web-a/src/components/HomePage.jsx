@@ -5,8 +5,10 @@ import { SmartChatInterface } from './SmartChatInterface'
 import { ClassicChatInterface } from './ClassicChatInterface'
 import { PlaidConnect } from './PlaidConnect'
 import { AuthForm } from './AuthForm'
+import { ConversationHistory } from './ConversationHistory'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
+import { useConversation } from '../contexts/ConversationContext'
 import { TrendingUp, Menu, X, Settings, LogOut, CreditCard, BarChart3, Shield } from 'lucide-react'
 
 export function HomePage() {
@@ -54,6 +56,9 @@ export function HomePage() {
             <p className="text-sm text-gray-600">Welcome back</p>
             <p className="text-sm font-semibold text-gray-900 truncate">{user.email}</p>
           </div>
+
+          {/* Conversation History */}
+          <ConversationHistory />
 
           {/* Assistant Selector */}
           <div className="mb-6">

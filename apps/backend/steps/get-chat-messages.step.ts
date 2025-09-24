@@ -19,7 +19,7 @@ export const config: ApiRouteConfig = {
   type: 'api',
   name: 'GetChatMessages',
   method: 'GET',
-  path: '/api/chat/sessions/messages',
+  path: '/api/chat/messages',
   emits: [],
 };
 
