@@ -66,7 +66,7 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
     }
 
     // Build messages query
-    let query = db
+    let dbQuery = db
       .from('chat_messages')
       .select('*')
       .eq('chat_session_id', sessionId)
@@ -75,10 +75,10 @@ export const handler: Handlers['GetChatMessages'] = async (req, { logger }) => {
 
     // Filter by thread if specified
     if (threadId) {
-      query = query.eq('thread_id', threadId);
+      dbQuery = dbQuery.eq('thread_id', threadId);
     }
 
-    const { data: messages, error: messagesError, count } = await query;
+    const { data: messages, error: messagesError, count } = await dbQuery;
 
     if (messagesError) {
       logger.error('Failed to fetch messages', { error: messagesError });
