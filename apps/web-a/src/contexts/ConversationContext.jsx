@@ -27,7 +27,7 @@ export function ConversationProvider({ children }) {
     if (!user?.id) return
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/sessions?userId=${user.id}`)
+      const response = await fetch(`/api/chat/sessions?userId=${user.id}`)
       if (response.ok) {
         const data = await response.json()
         setConversations(data.sessions || [])
@@ -46,7 +46,7 @@ export function ConversationProvider({ children }) {
 
     setLoading(true)
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/messages?sessionId=${sessionId}`)
+      const response = await fetch(`/api/chat/messages?sessionId=${sessionId}`)
       if (response.ok) {
         const data = await response.json()
         setMessages(data.messages || [])
@@ -64,7 +64,7 @@ export function ConversationProvider({ children }) {
     if (!user?.id) return null
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/sessions`, {
+      const response = await fetch(`/api/chat/sessions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -102,7 +102,7 @@ export function ConversationProvider({ children }) {
     if (!currentConversation?.id) return null
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/chat/messages`, {
+      const response = await fetch(`/api/chat/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
