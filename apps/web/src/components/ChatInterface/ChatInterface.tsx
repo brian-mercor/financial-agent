@@ -36,6 +36,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
     userId,
     autoCreateSession: false,
     assistantType: defaultAssistantType,
+    sessionId: propSessionId,
   });
 
   // WebSocket for real-time streaming

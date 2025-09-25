@@ -10,29 +10,44 @@ export interface UseChatSessionOptions {
   userId: string;
   autoCreateSession?: boolean;
   assistantType?: string;
+  sessionId?: string;
 }
 
 export function useChatSession(options: UseChatSessionOptions) {
-  const { userId, autoCreateSession = true, assistantType = 'general' } = options;
+  const { userId, autoCreateSession = true, assistantType = 'general', sessionId: propsSessionId } = options;
   const router = useRouter();
   const { sessionId: urlSessionId } = useParams<{ sessionId: string }>();
-  
+
   const [currentSession, setCurrentSession] = useState<ChatSession | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savingMessage, setSavingMessage] = useState(false);
-  
+
   const sessionIdRef = useRef<string | null>(null);
 
-  // Load session from URL parameter
-  useEffect(() => {
-    if (urlSessionId) {
-      loadSession(urlSessionId);
-    } else if (autoCreateSession && !sessionIdRef.current) {
-      createNewSession();
+  // Use props sessionId if provided, otherwise fall back to URL param
+  const activeSessionId = propsSessionId || urlSessionId;
+
+  // Load an existing session
+  const loadSession = useCallback(async (sessionId: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const response = await chatHistoryService.getChatMessages(sessionId);
+
+      sessionIdRef.current = sessionId;
+      setCurrentSession(response.session);
+      setMessages(response.messages);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
+      setError(errorMessage);
+      console.error('Error loading session:', err);
+    } finally {
+      setLoading(false);
     }
-  }, [urlSessionId]);
+  }, []);
 
   // Create a new chat session
   const createNewSession = useCallback(async (initialMessage?: string) => {
@@ -64,25 +79,14 @@ export function useChatSession(options: UseChatSessionOptions) {
     }
   }, [userId, assistantType, router.push]);
 
-  // Load an existing session
-  const loadSession = useCallback(async (sessionId: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const response = await chatHistoryService.getChatMessages(sessionId);
-      
-      sessionIdRef.current = sessionId;
-      setCurrentSession(response.session);
-      setMessages(response.messages);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to load session';
-      setError(errorMessage);
-      console.error('Error loading session:', err);
-    } finally {
-      setLoading(false);
+  // Load session from URL parameter or props
+  useEffect(() => {
+    if (activeSessionId && activeSessionId !== sessionIdRef.current) {
+      loadSession(activeSessionId);
+    } else if (autoCreateSession && !sessionIdRef.current && !activeSessionId) {
+      createNewSession();
     }
-  }, []);
+  }, [activeSessionId, loadSession, createNewSession, autoCreateSession]);
 
   // Save a message to the current session
   const saveMessage = useCallback(async (
