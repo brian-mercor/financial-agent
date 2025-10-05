@@ -1,0 +1,46 @@
+[
+  {
+    "id": "finance-workflow",
+    "config": {
+      "steps/web-search.step.ts": {
+        "x": -324,
+        "y": 633,
+        "sourceHandlePosition": "right",
+        "targetHandlePosition": "left"
+      },
+      "steps/save-result.step.ts": {
+        "x": 885,
+        "y": 659,
+        "sourceHandlePosition": "right",
+        "targetHandlePosition": "top"
+      },
+      "steps/result-api.step.ts": {
+        "x": 695,
+        "y": 305,
+        "sourceHandlePosition": "right"
+      },
+      "steps/response-coordinator.step.ts": {
+        "x": 220,
+        "y": 458,
+        "sourceHandlePosition": "bottom",
+        "targetHandlePosition": "left"
+      },
+      "steps/query-api.step.ts": {
+        "x": -861,
+        "y": 408,
+        "sourceHandlePosition": "right"
+      },
+      "steps/openai-analysis.step.ts": {
+        "x": 253,
+        "y": 735,
+        "sourceHandlePosition": "right"
+      },
+      "steps/finance-data.step.ts": {
+        "x": -326,
+        "y": 315,
+        "sourceHandlePosition": "right",
+        "targetHandlePosition": "left"
+      }
+    }
+  }
+]
